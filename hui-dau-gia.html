@@ -6,7 +6,7 @@
   <title>Mô phỏng hụi đấu giá</title>
   <style>
     :root {
-      --bg: #f6f7f4;
+      --bg: #f4f7fb;
       --panel: #ffffff;
       --ink: #1d2528;
       --muted: #667174;
@@ -19,7 +19,8 @@
       --purple: #8b5cf6;
       --green: #16a34a;
       --yellow: #fbbf24;
-      --shadow: 0 18px 40px rgba(29, 37, 40, 0.09);
+      --surface: rgba(255, 255, 255, 0.78);
+      --shadow: 0 18px 46px rgba(29, 37, 40, 0.12);
       --radius: 8px;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -32,8 +33,9 @@
       margin: 0;
       color: var(--ink);
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(246, 247, 244, 0.95)),
-        repeating-linear-gradient(90deg, rgba(47, 128, 237, 0.05) 0 1px, transparent 1px 72px);
+        radial-gradient(circle at 14% 10%, rgba(47, 128, 237, 0.16), transparent 0 320px),
+        radial-gradient(circle at 82% 8%, rgba(245, 158, 11, 0.14), transparent 0 280px),
+        linear-gradient(180deg, #ffffff, var(--bg));
     }
 
     button,
@@ -48,7 +50,7 @@
       border-radius: 7px;
       padding: 10px 13px;
       color: #fff;
-      background: #1d2528;
+      background: linear-gradient(135deg, #1d2528, #334246);
       cursor: pointer;
       transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
     }
@@ -181,7 +183,8 @@
     .panel {
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      background: rgba(255, 255, 255, 0.92);
+      background: var(--surface);
+      backdrop-filter: blur(18px);
       box-shadow: var(--shadow);
     }
 
@@ -208,6 +211,53 @@
     .config {
       position: sticky;
       top: 14px;
+    }
+
+    .config.collapsed .panel-body {
+      display: none;
+    }
+
+    .icon-button {
+      display: inline-grid;
+      place-items: center;
+      min-width: 38px;
+      height: 38px;
+      padding: 0 10px;
+      color: var(--ink);
+      background: #eef2f5;
+    }
+
+    .manual-plan {
+      display: grid;
+      gap: 8px;
+      max-height: 300px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fbfcfb;
+    }
+
+    .manual-row {
+      display: grid;
+      grid-template-columns: 42px minmax(110px, 1fr) minmax(130px, 1fr);
+      gap: 8px;
+      align-items: center;
+    }
+
+    .manual-row .round-chip {
+      display: grid;
+      place-items: center;
+      height: 38px;
+      border-radius: 8px;
+      color: #fff;
+      background: var(--blue);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .manual-row.final-row {
+      opacity: 0.78;
     }
 
     .form-grid {
@@ -288,6 +338,22 @@
         radial-gradient(circle at 50% 50%, rgba(47, 128, 237, 0.10), transparent 0 135px),
         linear-gradient(135deg, #ffffff, #f8faf8);
       border: 1px solid var(--line);
+    }
+
+    .arena-viewport {
+      position: relative;
+      min-height: inherit;
+      transform: translate(var(--pan-x, 0px), var(--pan-y, 0px)) scale(var(--zoom, 1));
+      transform-origin: 50% 50%;
+      transition: transform 220ms ease;
+    }
+
+    .zoom-status {
+      min-width: 58px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
     }
 
     .member-node,
@@ -566,6 +632,11 @@
       box-shadow: 0 10px 24px rgba(245, 158, 11, 0.14);
     }
 
+    .vote-card.carry {
+      border-color: rgba(47, 128, 237, 0.55);
+      background: #eef6ff;
+    }
+
     .vote-card.ineligible {
       background: #f6f1f1;
       opacity: 0.78;
@@ -611,6 +682,18 @@
       padding: 4px 8px;
       color: #7c3f00;
       background: #ffe6a8;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .carry-ribbon {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: #174b85;
+      background: #dbeeff;
       font-size: 11px;
       font-weight: 900;
       white-space: nowrap;
@@ -992,6 +1075,7 @@
         <aside class="panel config">
           <div class="panel-header">
             <h2>Cấu hình</h2>
+            <button class="icon-button" id="toggleConfig" type="button" title="Thu gọn cấu hình">Thu gọn</button>
           </div>
           <div class="panel-body">
             <div class="form-grid">
@@ -1036,12 +1120,12 @@
               </label>
 
               <label>
-                Kế hoạch đấu giá
-                <textarea id="auctionPlan" spellcheck="false" placeholder="Kỳ, Tên hoặc ID người thắng, % bỏ hụi&#10;1, Minh, 20&#10;2, Lan, 15&#10;3, 4, 12"></textarea>
+                Kế hoạch thủ công
+                <div id="manualPlanRows" class="manual-plan"></div>
               </label>
 
               <p id="validationWarning" class="warning"></p>
-              <p class="hint">Nếu kế hoạch thiếu kỳ, sai tên, hoặc người đó đã là hụi chết, kỳ đó sẽ tự random trong nhóm hụi sống.</p>
+              <p class="hint">Chế độ thủ công: chọn người hốt và nhập số tiền vote cho từng kỳ. Nếu thiếu hoặc người đó đã hốt, kỳ đó sẽ random. Kỳ cuối là bưng tô, không cần vote.</p>
 
               <div class="actions">
                 <button class="green" id="createSimulation">Tạo mô phỏng</button>
@@ -1069,26 +1153,32 @@
                 </div>
                 <div class="panel-body" style="padding:0;">
                   <div id="arena" class="arena">
-                    <div class="phase-banner">
-                      <strong id="phaseTitle">Phase 1 - Collect</strong>
-                      <span id="phaseDescription">Tất cả thành viên góp tiền vào quỹ hụi kỳ này.</span>
+                    <div id="arenaViewport" class="arena-viewport">
+                      <div class="phase-banner">
+                        <strong id="phaseTitle">Phase 1 - Collect</strong>
+                        <span id="phaseDescription">Tất cả thành viên góp tiền vào quỹ hụi kỳ này.</span>
+                      </div>
+                      <div id="potNode" class="pot-node">
+                        <strong>Quỹ hụi kỳ này</strong>
+                        <span id="potAmount">0 VND</span>
+                      </div>
+                      <div id="hostNode" class="host-node">
+                        <strong id="hostNodeName">Chị Hoa</strong>
+                        <span>Chủ hụi</span>
+                      </div>
+                      <div id="membersLayer"></div>
+                      <div id="effectsLayer"></div>
                     </div>
-                    <div id="potNode" class="pot-node">
-                      <strong>Quỹ hụi kỳ này</strong>
-                      <span id="potAmount">0 VND</span>
-                    </div>
-                    <div id="hostNode" class="host-node">
-                      <strong id="hostNodeName">Chị Hoa</strong>
-                      <span>Chủ hụi</span>
-                    </div>
-                    <div id="membersLayer"></div>
-                    <div id="effectsLayer"></div>
                   </div>
                   <div class="controls">
                     <button class="green" id="playBtn">Play animation</button>
                     <button class="secondary" id="pauseBtn">Pause</button>
                     <button class="secondary" id="prevBtn">Kỳ trước</button>
                     <button class="secondary" id="nextBtn">Kỳ sau</button>
+                    <button class="secondary" id="zoomOutBtn">Zoom -</button>
+                    <span id="zoomStatus" class="zoom-status">100%</span>
+                    <button class="secondary" id="zoomInBtn">Zoom +</button>
+                    <button class="secondary" id="centerBtn">Center</button>
                     <select id="roundSelect" aria-label="Chọn trực tiếp kỳ"></select>
                   </div>
                 </div>
@@ -1126,7 +1216,7 @@
                           <th>Tên thành viên</th>
                           <th>Trạng thái trước kỳ</th>
                           <th>Có được đấu giá không</th>
-                          <th>% bỏ hụi</th>
+                          <th>Vote</th>
                           <th>Số tiền bỏ hụi / chân</th>
                           <th>Tiền góp kỳ này</th>
                           <th>Có thắng không</th>
@@ -1184,7 +1274,7 @@
                         <tr>
                           <th>Kỳ</th>
                           <th>Người thắng</th>
-                          <th>% bỏ hụi thắng</th>
+                          <th>Vote thắng</th>
                           <th>Tiền bỏ hụi / chân</th>
                           <th>Quỹ thực thu</th>
                           <th>Hoa hồng chủ hụi</th>
@@ -1255,6 +1345,10 @@
           <article class="explain-card">
             <h2>Hụi chết là gì?</h2>
             <p>Hụi chết là thành viên đã hốt. Từ kỳ sau, họ không được đấu giá nữa nhưng vẫn phải đóng tiền đầy đủ cho đến khi dây hụi kết thúc.</p>
+          </article>
+          <article class="explain-card">
+            <h2>Bưng tô là gì?</h2>
+            <p>Bưng tô là kỳ cuối khi chỉ còn một hụi sống. Người này tự động hốt, không cần vote, không có khoản bỏ hụi, nhưng vẫn góp tiền kỳ đó.</p>
           </article>
           <article class="explain-card">
             <h2>Vì sao chỉ hụi sống được đấu giá?</h2>
@@ -1329,6 +1423,9 @@
       currentPhase: 0,
       playing: false,
       timer: null,
+      zoom: 1,
+      panX: 0,
+      panY: 0,
       charts: {
         payout: null,
         net: null,
@@ -1342,14 +1439,16 @@
       hostFeePercent: document.getElementById("hostFeePercent"),
       hostName: document.getElementById("hostName"),
       memberNames: document.getElementById("memberNames"),
-      auctionPlan: document.getElementById("auctionPlan"),
+      manualPlanRows: document.getElementById("manualPlanRows"),
       validationWarning: document.getElementById("validationWarning"),
+      toggleConfig: document.getElementById("toggleConfig"),
       createSimulation: document.getElementById("createSimulation"),
       randomNames: document.getElementById("randomNames"),
       resetSimulation: document.getElementById("resetSimulation"),
       emptyState: document.getElementById("emptyState"),
       simulationView: document.getElementById("simulationView"),
       arena: document.getElementById("arena"),
+      arenaViewport: document.getElementById("arenaViewport"),
       membersLayer: document.getElementById("membersLayer"),
       effectsLayer: document.getElementById("effectsLayer"),
       potNode: document.getElementById("potNode"),
@@ -1363,6 +1462,10 @@
       pauseBtn: document.getElementById("pauseBtn"),
       prevBtn: document.getElementById("prevBtn"),
       nextBtn: document.getElementById("nextBtn"),
+      zoomOutBtn: document.getElementById("zoomOutBtn"),
+      zoomInBtn: document.getElementById("zoomInBtn"),
+      centerBtn: document.getElementById("centerBtn"),
+      zoomStatus: document.getElementById("zoomStatus"),
       roundSelect: document.getElementById("roundSelect"),
       roundInfo: document.getElementById("roundInfo"),
       voteBoard: document.getElementById("voteBoard"),
@@ -1450,48 +1553,73 @@
       return Array.from({ length: count }, (_, index) => typed[index] || fallback[index]);
     }
 
-    function parseAuctionPlan(text, members) {
+    function renderManualPlanRows() {
+      const count = Math.max(2, Math.min(16, Number(els.numberOfMembers.value) || 8));
+      const names = getConfiguredNames(count);
+      const existing = new Map(Array.from(els.manualPlanRows.querySelectorAll(".manual-row")).map(row => [
+        Number(row.dataset.round),
+        {
+          winnerId: row.querySelector("select")?.value || "",
+          bidAmount: row.querySelector("input")?.value || ""
+        }
+      ]));
+      els.manualPlanRows.innerHTML = Array.from({ length: count }, (_, index) => {
+        const roundNumber = index + 1;
+        const previous = existing.get(roundNumber) || {};
+        const isFinal = roundNumber === count;
+        const selectedValue = previous.winnerId || "";
+        const options = names.map((name, nameIndex) => {
+          const value = String(nameIndex + 1);
+          return `<option value="${value}" ${value === selectedValue ? "selected" : ""}>${nameIndex + 1}. ${escapeHtml(name)}</option>`;
+        }).join("");
+
+        return `
+          <div class="manual-row ${isFinal ? "final-row" : ""}" data-round="${roundNumber}">
+            <div class="round-chip">K${roundNumber}</div>
+            <select class="manual-winner" ${isFinal ? "disabled" : ""} aria-label="Người hốt kỳ ${roundNumber}">
+              <option value="">${isFinal ? "Bưng tô" : "Random nếu trống"}</option>
+              ${options}
+            </select>
+            <input class="manual-bid" inputmode="numeric" value="${escapeHtml(previous.bidAmount || "")}" ${isFinal ? "disabled" : ""} placeholder="${isFinal ? "Không cần vote" : "Tiền vote, ví dụ 200.000"}" />
+          </div>
+        `;
+      }).join("");
+
+      els.manualPlanRows.querySelectorAll(".manual-bid").forEach(input => {
+        input.addEventListener("blur", () => {
+          const value = parseMoney(input.value);
+          input.value = value ? new Intl.NumberFormat("vi-VN").format(value) : "";
+        });
+      });
+    }
+
+    function parseManualAuctionPlan(members, contributionAmount) {
       const warnings = [];
       const plan = new Map();
-      const memberByName = new Map(members.map(member => [member.name.toLowerCase(), member]));
-      const memberById = new Map(members.map(member => [String(member.id), member]));
-      const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      const memberIds = new Set(members.map(member => String(member.id)));
 
-      for (const [lineIndex, line] of lines.entries()) {
-        const parts = line.split(",").map(part => part.trim());
-        if (parts.length !== 3) {
-          warnings.push(`Dòng ${lineIndex + 1}: cần đúng format "Kỳ, Tên hoặc ID, % bỏ hụi".`);
+      for (const row of els.manualPlanRows.querySelectorAll(".manual-row")) {
+        const roundNumber = Number(row.dataset.round);
+        if (roundNumber === members.length) continue;
+
+        const winnerToken = row.querySelector("select")?.value || "";
+        const bidAmount = parseMoney(row.querySelector("input")?.value || "");
+        if (!winnerToken && !bidAmount) continue;
+
+        if (!memberIds.has(winnerToken)) {
+          warnings.push(`Kỳ ${roundNumber}: người hốt không hợp lệ, sẽ random.`);
           continue;
         }
 
-        const roundNumber = Number(parts[0]);
-        const winnerToken = parts[1];
-        const bidPercent = Number(parts[2].replace("%", "").trim());
-
-        if (!Number.isInteger(roundNumber) || roundNumber < 1 || roundNumber > members.length) {
-          warnings.push(`Dòng ${lineIndex + 1}: kỳ không hợp lệ, sẽ bỏ qua.`);
-          continue;
-        }
-
-        if (!Number.isFinite(bidPercent) || bidPercent <= 0 || bidPercent > 80) {
-          warnings.push(`Dòng ${lineIndex + 1}: % bỏ hụi không hợp lệ, sẽ bỏ qua.`);
-          continue;
-        }
-
-        const winner = memberById.get(winnerToken) || memberByName.get(winnerToken.toLowerCase());
-        if (!winner) {
-          warnings.push(`Dòng ${lineIndex + 1}: không tìm thấy "${winnerToken}", kỳ ${roundNumber} sẽ random nếu tới lượt.`);
-          plan.set(roundNumber, {
-            winnerId: null,
-            bidPercent,
-            source: "invalid-name"
-          });
+        if (!bidAmount || bidAmount < 0 || bidAmount >= contributionAmount) {
+          warnings.push(`Kỳ ${roundNumber}: tiền vote phải lớn hơn 0 và nhỏ hơn tiền chân hụi, sẽ random.`);
           continue;
         }
 
         plan.set(roundNumber, {
-          winnerId: winner.id,
-          bidPercent,
+          winnerId: Number(winnerToken),
+          bidAmount,
+          bidPercent: bidAmount / contributionAmount * 100,
           source: "manual"
         });
       }
@@ -1507,11 +1635,15 @@
       member.netCashflow = member.totalReceived - member.totalPaid;
     }
 
-    function createRandomBids(liveMembers, theoreticalPot) {
-      const bidPercents = liveMembers.map(member => ({
+    function createRandomBids(liveMembers, contributionAmount) {
+      const bidPercents = liveMembers.map(member => {
+        const bidPercent = randomBid();
+        return {
         memberId: member.id,
-        bidPercent: randomBid()
-      }));
+          bidPercent,
+          bidAmount: contributionAmount * bidPercent / 100
+        };
+      });
 
       const winnerBid = bidPercents.reduce((best, bid) => bid.bidPercent > best.bidPercent ? bid : best, bidPercents[0]);
 
@@ -1519,35 +1651,38 @@
         winnerId: winnerBid.memberId,
         winningBidPercent: winnerBid.bidPercent,
         bidPercents,
-        theoreticalPot
+        bidAmount: winnerBid.bidAmount
       };
     }
 
-    function createManualBids(liveMembers, planEntry, theoreticalPot) {
+    function createManualBids(liveMembers, planEntry, contributionAmount) {
       if (!planEntry || !planEntry.winnerId || !liveMembers.some(member => member.id === planEntry.winnerId)) {
-        return createRandomBids(liveMembers, theoreticalPot);
+        return createRandomBids(liveMembers, contributionAmount);
       }
 
       const winnerId = planEntry.winnerId;
       const winningBidPercent = planEntry.bidPercent;
+      const winningBidAmount = planEntry.bidAmount;
       const bidPercents = liveMembers.map(member => {
         if (member.id === winnerId) {
-          return { memberId: member.id, bidPercent: winningBidPercent };
+          return { memberId: member.id, bidPercent: winningBidPercent, bidAmount: winningBidAmount };
         }
 
-        const maxOtherBid = Math.max(0.2, Math.min(25, winningBidPercent - 0.2));
-        const minOtherBid = Math.min(3, maxOtherBid);
+        const maxOtherBid = Math.max(1000, Math.min(contributionAmount * 0.25, winningBidAmount - 1000));
+        const minOtherBid = Math.min(contributionAmount * 0.03, maxOtherBid);
+        const bidAmount = Math.round((minOtherBid + Math.random() * (maxOtherBid - minOtherBid)) / 1000) * 1000;
         return {
           memberId: member.id,
-          bidPercent: Math.round((minOtherBid + Math.random() * (maxOtherBid - minOtherBid)) * 10) / 10
+          bidPercent: bidAmount / contributionAmount * 100,
+          bidAmount
         };
       });
 
       return {
         winnerId,
         winningBidPercent,
+        bidAmount: winningBidAmount,
         bidPercents,
-        theoreticalPot
       };
     }
 
@@ -1583,7 +1718,10 @@
         netCashflow: 0
       }));
 
-      const { plan, warnings } = parseAuctionPlan(auctionMode === "manual" ? els.auctionPlan.value : "", initialMembers);
+      renderManualPlanRows();
+      const { plan, warnings } = auctionMode === "manual"
+        ? parseManualAuctionPlan(initialMembers, settings.contributionAmount)
+        : { plan: new Map(), warnings: [] };
 
       const rounds = [];
       const snapshots = [];
@@ -1595,9 +1733,18 @@
         const theoreticalPot = settings.contributionAmount * settings.numberOfMembers;
         const hostFee = theoreticalPot * settings.hostFeePercent / 100;
         const planEntry = plan.get(roundNumber);
-        const auction = auctionMode === "manual"
-          ? createManualBids(workingMembers.filter(member => liveMembersBefore.includes(member.id)), planEntry, theoreticalPot)
-          : createRandomBids(workingMembers.filter(member => liveMembersBefore.includes(member.id)), theoreticalPot);
+        const liveMembers = workingMembers.filter(member => liveMembersBefore.includes(member.id));
+        const isCarryRound = liveMembers.length === 1;
+        const auction = isCarryRound
+          ? {
+            winnerId: liveMembers[0].id,
+            winningBidPercent: 0,
+            bidAmount: 0,
+            bidPercents: [{ memberId: liveMembers[0].id, bidPercent: 0, bidAmount: 0 }]
+          }
+          : auctionMode === "manual"
+            ? createManualBids(liveMembers, planEntry, settings.contributionAmount)
+            : createRandomBids(liveMembers, settings.contributionAmount);
 
         const winnerId = auction.winnerId;
         const winningBidPercent = auction.winningBidPercent;
@@ -1605,11 +1752,13 @@
         const bids = workingMembers.map(member => {
           const eligible = liveMembersBefore.includes(member.id);
           const bidPercent = eligible ? bidMap.get(member.id) : null;
-          const bidAmount = eligible ? settings.contributionAmount * bidPercent / 100 : null;
+          const auctionBid = auction.bidPercents.find(item => item.memberId === member.id);
+          const bidAmount = eligible ? auctionBid?.bidAmount || 0 : null;
 
           return {
             memberId: member.id,
-            eligible,
+            eligible: eligible && !isCarryRound,
+            isCarryRound: eligible && isCarryRound,
             bidPercent,
             bidAmount,
             isWinner: member.id === winnerId
@@ -1655,6 +1804,7 @@
           totalBidDiscount,
           liveContributionAmount,
           deadContributionAmount,
+          isCarryRound,
           payout
         });
 
@@ -1785,7 +1935,8 @@
       els.roundInfo.innerHTML = `
         <div class="metric"><span>Kỳ số</span><strong>${round.roundNumber}</strong></div>
         <div class="metric"><span>Người thắng kỳ này</span><strong>${escapeHtml(winner.name)}</strong></div>
-        <div class="metric"><span>Mức bỏ hụi thắng</span><strong>${formatPercent(round.winningBidPercent)}</strong></div>
+        <div class="metric"><span>Hình thức</span><strong>${round.isCarryRound ? "Bưng tô" : "Đấu giá"}</strong></div>
+        <div class="metric"><span>Mức vote thắng</span><strong>${round.isCarryRound ? "Không cần vote" : formatPercent(round.winningBidPercent)}</strong></div>
         <div class="metric"><span>Số tiền bỏ hụi / chân</span><strong>${formatVND(round.bidDiscount)}</strong></div>
         <div class="metric"><span>Hụi sống góp mỗi người</span><strong>${formatVND(round.liveContributionAmount)}</strong></div>
         <div class="metric"><span>Hụi chết góp mỗi người</span><strong>${formatVND(round.deadContributionAmount)}</strong></div>
@@ -1810,16 +1961,18 @@
       els.voteBoard.innerHTML = orderedBids.map(bid => {
         const member = memberById(bid.memberId);
         const width = bid.eligible ? Math.max(4, bid.bidPercent / maxBidPercent * 100) : 0;
-        const classes = ["vote-card", bid.isWinner ? "winner" : "", !bid.eligible ? "ineligible" : ""].filter(Boolean).join(" ");
+        const classes = ["vote-card", bid.isWinner ? "winner" : "", bid.isCarryRound ? "carry" : "", !bid.eligible && !bid.isCarryRound ? "ineligible" : ""].filter(Boolean).join(" ");
 
         return `
           <div class="${classes}" data-hover-member="${member.id}">
             <div class="vote-topline">
               <strong>${escapeHtml(member.name)}</strong>
-              ${bid.isWinner ? "<span class='winner-ribbon'>Đang thắng</span>" : `<span class="pill ${bid.eligible ? "live" : "no"}">${bid.eligible ? "Được vote" : "Không vote"}</span>`}
+              ${bid.isCarryRound ? "<span class='carry-ribbon'>Bưng tô</span>" : bid.isWinner ? "<span class='winner-ribbon'>Đang thắng</span>" : `<span class="pill ${bid.eligible ? "live" : "no"}">${bid.eligible ? "Được vote" : "Không vote"}</span>`}
             </div>
             <div class="vote-amount">
-              ${bid.eligible
+              ${bid.isCarryRound
+                ? `Người cuối cùng, không cần vote<br>Góp kỳ này: ${formatVND(bid.contributionPaid)}`
+                : bid.eligible
                 ? `Vote ${formatPercent(bid.bidPercent)} = ${formatVND(bid.bidAmount)} / chân<br>Góp kỳ này: ${formatVND(bid.contributionPaid)}`
                 : `Hụi chết, góp đủ ${formatVND(bid.contributionPaid)}`}
             </div>
@@ -1834,14 +1987,14 @@
 
       els.auctionTable.innerHTML = round.bids.map(bid => {
         const member = memberById(bid.memberId);
-        const status = bid.eligible ? "live" : "dead";
+        const status = round.liveMembersBefore.includes(bid.memberId) ? "live" : "dead";
         return `
           <tr class="${bid.isWinner ? "win-row" : ""}" data-hover-member="${member.id}">
             <td><strong>${escapeHtml(member.name)}</strong></td>
             <td><span class="pill ${status}">${status === "live" ? "Hụi sống" : "Hụi chết"}</span></td>
-            <td>${bid.eligible ? "Có" : "<span class='pill no'>Không được đấu giá</span>"}</td>
-            <td>${bid.eligible ? formatPercent(bid.bidPercent) : "—"}</td>
-            <td>${bid.eligible ? formatVND(bid.bidAmount) : "—"}</td>
+            <td>${bid.isCarryRound ? "<span class='carry-ribbon'>Bưng tô</span>" : bid.eligible ? "Có" : "<span class='pill no'>Không được đấu giá</span>"}</td>
+            <td>${bid.isCarryRound ? "Không vote" : bid.eligible ? formatPercent(bid.bidPercent) : "—"}</td>
+            <td>${bid.isCarryRound ? formatVND(0) : bid.eligible ? formatVND(bid.bidAmount) : "—"}</td>
             <td>${formatVND(bid.contributionPaid)}</td>
             <td>${bid.isWinner ? "<strong>Thắng</strong>" : "Không"}</td>
           </tr>
@@ -1861,7 +2014,7 @@
           <tr class="${index === state.currentRoundIndex ? "win-row" : ""}">
             <td>${round.roundNumber}</td>
             <td><strong>${escapeHtml(winner.name)}</strong></td>
-            <td>${formatPercent(round.winningBidPercent)}</td>
+            <td>${round.isCarryRound ? "Bưng tô" : formatPercent(round.winningBidPercent)}</td>
             <td>${formatVND(round.bidDiscount)}</td>
             <td>${formatVND(round.collectedPot)}</td>
             <td>${formatVND(round.hostFee)}</td>
@@ -2007,7 +2160,7 @@
           <tr data-hover-member="${winner.id}">
             <td>${round.roundNumber}</td>
             <td><strong>${escapeHtml(winner.name)}</strong></td>
-            <td>${formatPercent(round.winningBidPercent)}</td>
+            <td>${round.isCarryRound ? "Bưng tô" : formatPercent(round.winningBidPercent)}</td>
             <td>${formatVND(round.bidDiscount)}</td>
             <td>${formatVND(round.liveContributionAmount)}</td>
             <td>${formatVND(round.deadContributionAmount)}</td>
@@ -2082,7 +2235,9 @@
 
         if (state.currentPhase === 2) {
           const winnerNode = getMemberNode(round.winnerId);
-          createFlow(els.potNode, winnerNode, "var(--purple)", `${winner.name} bỏ hụi ${formatPercent(round.winningBidPercent)} = ${formatVND(round.bidDiscount)} / chân`);
+          createFlow(els.potNode, winnerNode, "var(--purple)", round.isCarryRound
+            ? `${winner.name} bưng tô, không cần vote`
+            : `${winner.name} bỏ hụi ${formatPercent(round.winningBidPercent)} = ${formatVND(round.bidDiscount)} / chân`);
         }
 
         if (state.currentPhase === 3) {
@@ -2205,6 +2360,25 @@
       els.nextBtn.disabled = !state.rounds.length || state.currentRoundIndex === state.rounds.length - 1;
     }
 
+    function updateArenaTransform() {
+      els.arenaViewport.style.setProperty("--zoom", state.zoom);
+      els.arenaViewport.style.setProperty("--pan-x", `${state.panX}px`);
+      els.arenaViewport.style.setProperty("--pan-y", `${state.panY}px`);
+      els.zoomStatus.textContent = `${Math.round(state.zoom * 100)}%`;
+    }
+
+    function setZoom(nextZoom) {
+      state.zoom = Math.max(0.7, Math.min(1.55, Math.round(nextZoom * 100) / 100));
+      updateArenaTransform();
+    }
+
+    function centerArena() {
+      state.zoom = 1;
+      state.panX = 0;
+      state.panY = 0;
+      updateArenaTransform();
+    }
+
     function enableMemberHover() {
       document.querySelectorAll("[data-hover-member]").forEach(element => {
         element.onmouseenter = event => showPlayerTooltip(event, Number(element.dataset.hoverMember));
@@ -2269,6 +2443,7 @@
     els.randomNames.addEventListener("click", () => {
       const count = Math.max(2, Math.min(16, Number(els.numberOfMembers.value) || 8));
       els.memberNames.value = makeMemberNames(count).join(", ");
+      renderManualPlanRows();
     });
 
     els.createSimulation.addEventListener("click", buildSimulation);
@@ -2277,6 +2452,14 @@
     els.pauseBtn.addEventListener("click", pause);
     els.prevBtn.addEventListener("click", previousRound);
     els.nextBtn.addEventListener("click", nextRound);
+    els.zoomOutBtn.addEventListener("click", () => setZoom(state.zoom - 0.1));
+    els.zoomInBtn.addEventListener("click", () => setZoom(state.zoom + 0.1));
+    els.centerBtn.addEventListener("click", centerArena);
+    els.toggleConfig.addEventListener("click", () => {
+      const config = document.querySelector(".config");
+      config.classList.toggle("collapsed");
+      els.toggleConfig.textContent = config.classList.contains("collapsed") ? "Mở rộng" : "Thu gọn";
+    });
 
     els.roundSelect.addEventListener("change", event => {
       pause();
@@ -2289,16 +2472,22 @@
       const count = Math.max(2, Math.min(16, Number(els.numberOfMembers.value) || 8));
       els.numberOfMembers.value = count;
       els.memberNames.value = makeMemberNames(count).join(", ");
+      renderManualPlanRows();
       resetSimulation();
     });
+
+    els.memberNames.addEventListener("blur", renderManualPlanRows);
 
     window.addEventListener("resize", () => {
       if (state.rounds.length) {
         renderArena();
         renderPhaseEffects();
+        updateArenaTransform();
       }
     });
 
+    renderManualPlanRows();
+    updateArenaTransform();
     buildSimulation();
   </script>
 </body>
