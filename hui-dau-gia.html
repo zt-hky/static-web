@@ -1,0 +1,1840 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mô phỏng hụi đấu giá</title>
+  <style>
+    :root {
+      --bg: #f6f7f4;
+      --panel: #ffffff;
+      --ink: #1d2528;
+      --muted: #667174;
+      --line: #dfe5df;
+      --live: #22a06b;
+      --dead: #d66b6b;
+      --dead-bg: #fff0f0;
+      --orange: #f59e0b;
+      --blue: #2f80ed;
+      --purple: #8b5cf6;
+      --green: #16a34a;
+      --yellow: #fbbf24;
+      --shadow: 0 18px 40px rgba(29, 37, 40, 0.09);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(246, 247, 244, 0.95)),
+        repeating-linear-gradient(90deg, rgba(47, 128, 237, 0.05) 0 1px, transparent 1px 72px);
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 7px;
+      padding: 10px 13px;
+      color: #fff;
+      background: #1d2528;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(29, 37, 40, 0.16);
+    }
+
+    button.secondary {
+      color: var(--ink);
+      background: #edf1ed;
+    }
+
+    button.blue {
+      background: var(--blue);
+    }
+
+    button.green {
+      background: var(--green);
+    }
+
+    button.orange {
+      background: var(--orange);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px 11px;
+      color: var(--ink);
+      background: #fbfcfb;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 108px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.12);
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .app {
+      width: min(1440px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 20px 0 38px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 16px;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 46px);
+      line-height: 1.03;
+      letter-spacing: 0;
+    }
+
+    .title p {
+      max-width: 720px;
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .tab-btn {
+      color: var(--muted);
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .tab-btn.active {
+      color: #fff;
+      background: #1d2528;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 390px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 15px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-header h2,
+    .panel-header h3 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .config {
+      position: sticky;
+      top: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 13px;
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 11px;
+    }
+
+    .radio-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .radio-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fbfcfb;
+      cursor: pointer;
+      font-weight: 650;
+    }
+
+    .radio-card input {
+      width: auto;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 2px;
+    }
+
+    .hint,
+    .warning {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .warning {
+      display: none;
+      color: #a15c00;
+      border: 1px solid #f6d58f;
+      border-radius: 7px;
+      padding: 9px 10px;
+      background: #fff8e7;
+    }
+
+    .warning.show {
+      display: block;
+    }
+
+    .stage-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
+      gap: 16px;
+    }
+
+    .arena {
+      position: relative;
+      min-height: 620px;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(47, 128, 237, 0.10), transparent 0 135px),
+        linear-gradient(135deg, #ffffff, #f8faf8);
+      border: 1px solid var(--line);
+    }
+
+    .member-node,
+    .pot-node,
+    .host-node {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(29, 37, 40, 0.11);
+      z-index: 2;
+    }
+
+    .member-node {
+      width: 116px;
+      min-height: 82px;
+      padding: 8px;
+      transform: translate(-50%, -50%);
+      transition: border 260ms ease, background 260ms ease, box-shadow 260ms ease;
+    }
+
+    .member-node.winner {
+      border-color: var(--orange);
+      background: #fff8df;
+      box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.27), 0 14px 28px rgba(245, 158, 11, 0.22);
+    }
+
+    .member-node.dead-now {
+      background: var(--dead-bg);
+    }
+
+    .node-name {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      font-weight: 800;
+      font-size: 15px;
+    }
+
+    .node-id {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 72px;
+      margin-top: 5px;
+      border-radius: 999px;
+      padding: 3px 7px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+      background: var(--live);
+    }
+
+    .badge.dead {
+      background: var(--dead);
+    }
+
+    .pot-node {
+      left: 50%;
+      top: 50%;
+      width: 170px;
+      height: 114px;
+      padding: 12px;
+      transform: translate(-50%, -50%);
+      background: #1d2528;
+      color: #fff;
+      border-color: #1d2528;
+      z-index: 3;
+    }
+
+    .pot-node strong {
+      font-size: 15px;
+    }
+
+    .pot-node span {
+      display: block;
+      margin-top: 5px;
+      color: #d8dfdc;
+      font-size: 12px;
+    }
+
+    .host-node {
+      right: 24px;
+      bottom: 24px;
+      width: 138px;
+      min-height: 78px;
+      padding: 10px;
+      border-color: rgba(47, 128, 237, 0.35);
+      background: #eef6ff;
+    }
+
+    .host-node strong {
+      font-size: 15px;
+    }
+
+    .host-node span {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .phase-banner {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      z-index: 5;
+      max-width: calc(100% - 32px);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 12px 26px rgba(29, 37, 40, 0.1);
+    }
+
+    .phase-banner strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .phase-banner span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .particle {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: 13px;
+      height: 13px;
+      border-radius: 999px;
+      background: var(--c);
+      box-shadow: 0 0 0 5px color-mix(in srgb, var(--c) 18%, transparent);
+      z-index: 4;
+      animation: fly 920ms ease-in-out both;
+    }
+
+    @keyframes fly {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.75);
+      }
+
+      18% {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+        transform: translate(calc(var(--dx) - 50%), calc(var(--dy) - 50%)) scale(1.12);
+      }
+    }
+
+    .flow-label {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      z-index: 5;
+      max-width: 180px;
+      border-radius: 999px;
+      padding: 6px 9px;
+      color: #fff;
+      background: var(--c);
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 0 8px 18px rgba(29, 37, 40, 0.16);
+      transform: translate(-50%, -50%);
+      animation: labelIn 360ms ease both;
+      pointer-events: none;
+    }
+
+    @keyframes labelIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, calc(-50% + 8px));
+      }
+
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      background: #fbfcfb;
+    }
+
+    .controls select {
+      width: auto;
+      min-width: 112px;
+    }
+
+    .round-info {
+      display: grid;
+      gap: 10px;
+    }
+
+    .metric {
+      display: grid;
+      grid-template-columns: minmax(120px, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px dashed var(--line);
+      padding-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .metric:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .metric span {
+      color: var(--muted);
+    }
+
+    .metric strong {
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+
+    .note {
+      border-left: 4px solid var(--green);
+      border-radius: 7px;
+      padding: 10px 11px;
+      color: #29443a;
+      background: #effaf4;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .content-stack {
+      display: grid;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 11px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: #526063;
+      background: #f2f5f2;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    tr.win-row {
+      background: #fff8df;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .pill.live {
+      color: #0f6b44;
+      background: #e5f7ee;
+    }
+
+    .pill.dead {
+      color: #9e3434;
+      background: #ffe9e9;
+    }
+
+    .pill.no {
+      color: #6d7476;
+      background: #ecefee;
+    }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .chart {
+      min-height: 280px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .chart h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+
+    .bar-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 92px minmax(150px, 1fr) 118px;
+      gap: 9px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .bar-name {
+      overflow-wrap: anywhere;
+      font-weight: 800;
+    }
+
+    .bar-track {
+      position: relative;
+      height: 24px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #edf1ed;
+    }
+
+    .bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      min-width: 3px;
+      border-radius: 999px;
+      background: var(--green);
+      transition: width 300ms ease, left 300ms ease;
+    }
+
+    .bar.negative {
+      left: auto;
+      right: 50%;
+      background: var(--dead);
+    }
+
+    .bar.positive {
+      left: 50%;
+      background: var(--green);
+    }
+
+    .bar.zero-line {
+      left: 50%;
+      width: 1px;
+      min-width: 1px;
+      background: #566064;
+      border-radius: 0;
+      z-index: 2;
+    }
+
+    .bar-value {
+      color: var(--muted);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .explain {
+      display: grid;
+      gap: 16px;
+      max-width: 1040px;
+    }
+
+    .explain-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .explain-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .explain-card h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .explain-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .formula {
+      border-left: 4px solid var(--blue);
+      border-radius: 8px;
+      padding: 14px 16px;
+      background: #eef6ff;
+      line-height: 1.7;
+    }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 340px;
+      border: 1px dashed #c9d2cc;
+      border-radius: 8px;
+      color: var(--muted);
+      text-align: center;
+      background: rgba(255, 255, 255, 0.65);
+    }
+
+    @media (max-width: 1180px) {
+      .grid,
+      .stage-grid,
+      .charts,
+      .explain-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .config {
+        position: static;
+      }
+
+      .arena {
+        min-height: 680px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar,
+      .two,
+      .radio-row {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+
+      .topbar {
+        display: grid;
+      }
+
+      .tabs {
+        width: 100%;
+      }
+
+      .tab-btn {
+        flex: 1;
+      }
+
+      .member-node {
+        width: 98px;
+        min-height: 78px;
+      }
+
+      .pot-node {
+        width: 146px;
+        height: 104px;
+      }
+
+      .host-node {
+        right: 12px;
+        bottom: 12px;
+      }
+
+      .bar-row {
+        grid-template-columns: 76px minmax(120px, 1fr);
+      }
+
+      .bar-value {
+        grid-column: 2;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="title">
+        <h1>Mô phỏng hụi đấu giá</h1>
+        <p>Quan sát từng kỳ: ai còn hụi sống, ai được đấu giá, tiền đi vào quỹ ra sao, chủ hụi nhận hoa hồng thế nào và người hốt thực nhận bao nhiêu.</p>
+      </div>
+      <nav class="tabs" aria-label="Chọn nội dung">
+        <button class="tab-btn active" data-tab="simulation">Mô phỏng</button>
+        <button class="tab-btn" data-tab="explanation">Giải thích</button>
+      </nav>
+    </header>
+
+    <section id="simulation" class="tab-panel active">
+      <div class="grid">
+        <aside class="panel config">
+          <div class="panel-header">
+            <h2>Cấu hình</h2>
+          </div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <label>
+                Số tiền mỗi chân hụi mỗi kỳ
+                <input id="contributionAmount" value="1.000.000" inputmode="numeric" />
+              </label>
+
+              <div class="two">
+                <label>
+                  Số người tham gia
+                  <input id="numberOfMembers" type="number" min="2" max="16" value="8" />
+                </label>
+                <label>
+                  Hoa hồng chủ hụi (%)
+                  <input id="hostFeePercent" type="number" min="0" max="30" step="0.1" value="2" />
+                </label>
+              </div>
+
+              <label>
+                Tên chủ hụi
+                <input id="hostName" value="Chị Hoa" />
+              </label>
+
+              <label>
+                Tên thành viên
+                <textarea id="memberNames" spellcheck="false">Lan, Minh, Hùng, Thảo, Duy, Ngọc, Tuấn, Hạnh</textarea>
+              </label>
+
+              <label>
+                Cách tạo đấu giá
+                <div class="radio-row">
+                  <span class="radio-card">
+                    <input type="radio" name="auctionMode" value="random" checked />
+                    Random từng kỳ
+                  </span>
+                  <span class="radio-card">
+                    <input type="radio" name="auctionMode" value="manual" />
+                    Tự nhập kế hoạch
+                  </span>
+                </div>
+              </label>
+
+              <label>
+                Kế hoạch đấu giá
+                <textarea id="auctionPlan" spellcheck="false" placeholder="Kỳ, Tên hoặc ID người thắng, % bỏ hụi&#10;1, Minh, 20&#10;2, Lan, 15&#10;3, 4, 12"></textarea>
+              </label>
+
+              <p id="validationWarning" class="warning"></p>
+              <p class="hint">Nếu kế hoạch thiếu kỳ, sai tên, hoặc người đó đã là hụi chết, kỳ đó sẽ tự random trong nhóm hụi sống.</p>
+
+              <div class="actions">
+                <button class="green" id="createSimulation">Tạo mô phỏng</button>
+                <button class="secondary" id="randomNames">Random tên thành viên</button>
+                <button class="secondary" id="resetSimulation">Reset</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <section>
+          <div id="emptyState" class="empty">
+            <div>
+              <strong>Nhấn "Tạo mô phỏng" để bắt đầu</strong>
+              <p>Mỗi kỳ sẽ có animation thu tiền, trừ hoa hồng, trừ khoản bỏ hụi, trả tiền hốt và cập nhật hụi sống/hụi chết.</p>
+            </div>
+          </div>
+
+          <div id="simulationView" style="display:none;">
+            <div class="stage-grid">
+              <div class="panel">
+                <div class="panel-header">
+                  <h2>Dòng tiền kỳ hiện tại</h2>
+                  <span id="phaseLabel" class="pill no">Sẵn sàng</span>
+                </div>
+                <div class="panel-body" style="padding:0;">
+                  <div id="arena" class="arena">
+                    <div class="phase-banner">
+                      <strong id="phaseTitle">Phase 1 - Collect</strong>
+                      <span id="phaseDescription">Tất cả thành viên góp tiền vào quỹ hụi kỳ này.</span>
+                    </div>
+                    <div id="potNode" class="pot-node">
+                      <strong>Quỹ hụi kỳ này</strong>
+                      <span id="potAmount">0 VND</span>
+                    </div>
+                    <div id="hostNode" class="host-node">
+                      <strong id="hostNodeName">Chị Hoa</strong>
+                      <span>Chủ hụi</span>
+                    </div>
+                    <div id="membersLayer"></div>
+                    <div id="effectsLayer"></div>
+                  </div>
+                  <div class="controls">
+                    <button class="green" id="playBtn">Play animation</button>
+                    <button class="secondary" id="pauseBtn">Pause</button>
+                    <button class="secondary" id="prevBtn">Kỳ trước</button>
+                    <button class="secondary" id="nextBtn">Kỳ sau</button>
+                    <select id="roundSelect" aria-label="Chọn trực tiếp kỳ"></select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h2>Thông tin kỳ</h2>
+                </div>
+                <div class="panel-body">
+                  <div id="roundInfo" class="round-info"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="content-stack">
+              <div class="panel">
+                <div class="panel-header">
+                  <h2>Bảng đấu giá kỳ hiện tại</h2>
+                </div>
+                <div class="panel-body">
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Tên thành viên</th>
+                          <th>Trạng thái trước kỳ</th>
+                          <th>Có được đấu giá không</th>
+                          <th>% bỏ hụi</th>
+                          <th>Số tiền bỏ hụi / chân</th>
+                          <th>Tiền góp kỳ này</th>
+                          <th>Có thắng không</th>
+                        </tr>
+                      </thead>
+                      <tbody id="auctionTable"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="charts">
+                <div class="chart">
+                  <h3>Số tiền thực nhận theo kỳ hốt</h3>
+                  <div id="payoutChart" class="bar-list"></div>
+                </div>
+                <div class="chart">
+                  <h3>Net cashflow tại kỳ hiện tại</h3>
+                  <div id="netChart" class="bar-list"></div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h2>Bảng trạng thái thành viên</h2>
+                </div>
+                <div class="panel-body">
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Tên</th>
+                          <th>Trạng thái hiện tại</th>
+                          <th>Đã góp đến kỳ này</th>
+                          <th>Đã nhận đến kỳ này</th>
+                          <th>Tổng khoản bỏ hụi khi hốt</th>
+                          <th>Net cashflow</th>
+                          <th>Kỳ đã hốt</th>
+                        </tr>
+                      </thead>
+                      <tbody id="memberTable"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h2>Bảng dòng tiền toàn dây</h2>
+                </div>
+                <div class="panel-body">
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Kỳ</th>
+                          <th>Người thắng</th>
+                          <th>% bỏ hụi thắng</th>
+                          <th>Tiền bỏ hụi / chân</th>
+                          <th>Quỹ thực thu</th>
+                          <th>Hoa hồng chủ hụi</th>
+                          <th>Người thắng thực nhận</th>
+                          <th>Hụi sống trước kỳ</th>
+                          <th>Hụi chết trước kỳ</th>
+                        </tr>
+                      </thead>
+                      <tbody id="summaryTable"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section id="explanation" class="tab-panel">
+      <div class="explain">
+        <div class="explain-grid">
+          <article class="explain-card">
+            <h2>Hụi đấu giá là gì?</h2>
+            <p>Mỗi kỳ, hụi chết góp đủ tiền chân hụi, còn hụi sống góp số tiền chân hụi trừ mức bỏ hụi thắng. Những người chưa hốt sẽ đưa ra mức bỏ hụi. Ai bỏ cao nhất thì thắng kỳ đó và được hốt tiền.</p>
+          </article>
+          <article class="explain-card">
+            <h2>Hụi sống là gì?</h2>
+            <p>Hụi sống là thành viên chưa hốt. Họ còn quyền tham gia đấu giá ở các kỳ tiếp theo và vẫn đóng tiền mỗi kỳ.</p>
+          </article>
+          <article class="explain-card">
+            <h2>Hụi chết là gì?</h2>
+            <p>Hụi chết là thành viên đã hốt. Từ kỳ sau, họ không được đấu giá nữa nhưng vẫn phải đóng tiền đầy đủ cho đến khi dây hụi kết thúc.</p>
+          </article>
+          <article class="explain-card">
+            <h2>Vì sao chỉ hụi sống được đấu giá?</h2>
+            <p>Mỗi người chỉ được hốt một lần. Khi đã hốt, quyền nhận quỹ của người đó đã dùng xong nên họ chuyển sang hụi chết.</p>
+          </article>
+          <article class="explain-card">
+            <h2>Vì sao hốt sớm thường bỏ cao?</h2>
+            <p>Người cần tiền sớm thường chấp nhận bỏ hụi cao hơn để thắng kỳ hiện tại. Mức bỏ càng cao thì khoản thực nhận càng giảm.</p>
+          </article>
+          <article class="explain-card">
+            <h2>Chủ hụi nhận tiền gì?</h2>
+            <p>Chủ hụi nhận hoa hồng theo tỷ lệ phần trăm trên tổng quỹ lý thuyết mỗi kỳ. Khoản này được trừ trước khi trả tiền cho người thắng.</p>
+          </article>
+        </div>
+
+        <div class="formula">
+          <strong>Ví dụ số:</strong><br />
+          8 người ở kỳ đầu đều là hụi sống. Mỗi người góp 1.000.000 VND trừ mức bỏ hụi thắng.<br />
+          Hoa hồng chủ hụi 2% là 160.000 VND.<br />
+          Minh thắng đấu giá với mức bỏ hụi 20%, tức 200.000 VND mỗi chân. Mỗi hụi sống góp 800.000 VND.<br />
+          Quỹ thực thu = 8 x 800.000 = 6.400.000 VND.<br />
+          Minh thực nhận = 6.400.000 - 160.000 = 6.240.000 VND.<br />
+          Sau kỳ này Minh chuyển từ hụi sống sang hụi chết.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const VIETNAMESE_NAMES = [
+      "Lan", "Minh", "Hùng", "Thảo", "Duy", "Ngọc", "Tuấn", "Hạnh",
+      "Phúc", "Linh", "Quang", "Vy", "An", "Bình", "Mai", "Khoa",
+      "Trang", "Nam", "Hiền", "Sơn", "Yến", "Long", "Tâm", "Như"
+    ];
+
+    const phaseCopy = [
+      {
+        short: "Collect",
+        title: "Phase 1 - Collect",
+        description: "Hụi sống góp tiền chân hụi trừ mức bỏ hụi thắng; hụi chết góp đủ tiền chân hụi."
+      },
+      {
+        short: "Host fee",
+        title: "Phase 2 - Host fee",
+        description: "Quỹ trích hoa hồng cho chủ hụi theo tỷ lệ đã cấu hình."
+      },
+      {
+        short: "Bid discount",
+        title: "Phase 3 - Bid discount",
+        description: "Khoản bỏ hụi của người thắng được trừ khỏi số tiền họ thực nhận."
+      },
+      {
+        short: "Payout",
+        title: "Phase 4 - Payout",
+        description: "Phần còn lại của quỹ được trả cho người thắng kỳ này."
+      },
+      {
+        short: "Status update",
+        title: "Phase 5 - Status update",
+        description: "Người thắng chuyển từ hụi sống sang hụi chết và không còn đấu giá ở các kỳ sau."
+      }
+    ];
+
+    const state = {
+      settings: null,
+      initialMembers: [],
+      rounds: [],
+      snapshots: [],
+      currentRoundIndex: 0,
+      currentPhase: 0,
+      playing: false,
+      timer: null
+    };
+
+    const els = {
+      contributionAmount: document.getElementById("contributionAmount"),
+      numberOfMembers: document.getElementById("numberOfMembers"),
+      hostFeePercent: document.getElementById("hostFeePercent"),
+      hostName: document.getElementById("hostName"),
+      memberNames: document.getElementById("memberNames"),
+      auctionPlan: document.getElementById("auctionPlan"),
+      validationWarning: document.getElementById("validationWarning"),
+      createSimulation: document.getElementById("createSimulation"),
+      randomNames: document.getElementById("randomNames"),
+      resetSimulation: document.getElementById("resetSimulation"),
+      emptyState: document.getElementById("emptyState"),
+      simulationView: document.getElementById("simulationView"),
+      arena: document.getElementById("arena"),
+      membersLayer: document.getElementById("membersLayer"),
+      effectsLayer: document.getElementById("effectsLayer"),
+      potNode: document.getElementById("potNode"),
+      potAmount: document.getElementById("potAmount"),
+      hostNode: document.getElementById("hostNode"),
+      hostNodeName: document.getElementById("hostNodeName"),
+      phaseLabel: document.getElementById("phaseLabel"),
+      phaseTitle: document.getElementById("phaseTitle"),
+      phaseDescription: document.getElementById("phaseDescription"),
+      playBtn: document.getElementById("playBtn"),
+      pauseBtn: document.getElementById("pauseBtn"),
+      prevBtn: document.getElementById("prevBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+      roundSelect: document.getElementById("roundSelect"),
+      roundInfo: document.getElementById("roundInfo"),
+      auctionTable: document.getElementById("auctionTable"),
+      memberTable: document.getElementById("memberTable"),
+      summaryTable: document.getElementById("summaryTable"),
+      payoutChart: document.getElementById("payoutChart"),
+      netChart: document.getElementById("netChart")
+    };
+
+    function formatVND(value) {
+      return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0
+      }).format(Math.round(value));
+    }
+
+    function parseMoney(value) {
+      const normalized = String(value).replace(/[^\d]/g, "");
+      return Number(normalized || 0);
+    }
+
+    function formatPercent(value) {
+      return `${Number(value).toFixed(value % 1 === 0 ? 0 : 1)}%`;
+    }
+
+    function shuffle(array) {
+      const result = [...array];
+      for (let index = result.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+      }
+      return result;
+    }
+
+    function randomBid(min = 3, max = 25) {
+      const value = min + Math.random() * (max - min);
+      return Math.round(value * 10) / 10;
+    }
+
+    function getAuctionMode() {
+      return document.querySelector("input[name='auctionMode']:checked").value;
+    }
+
+    function makeMemberNames(count) {
+      const names = shuffle(VIETNAMESE_NAMES);
+      return Array.from({ length: count }, (_, index) => names[index % names.length] + (index >= names.length ? ` ${Math.floor(index / names.length) + 1}` : ""));
+    }
+
+    function getConfiguredNames(count) {
+      const typed = els.memberNames.value
+        .split(/[\n,]/)
+        .map(name => name.trim())
+        .filter(Boolean);
+
+      const fallback = makeMemberNames(count);
+      return Array.from({ length: count }, (_, index) => typed[index] || fallback[index]);
+    }
+
+    function parseAuctionPlan(text, members) {
+      const warnings = [];
+      const plan = new Map();
+      const memberByName = new Map(members.map(member => [member.name.toLowerCase(), member]));
+      const memberById = new Map(members.map(member => [String(member.id), member]));
+      const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+
+      for (const [lineIndex, line] of lines.entries()) {
+        const parts = line.split(",").map(part => part.trim());
+        if (parts.length !== 3) {
+          warnings.push(`Dòng ${lineIndex + 1}: cần đúng format "Kỳ, Tên hoặc ID, % bỏ hụi".`);
+          continue;
+        }
+
+        const roundNumber = Number(parts[0]);
+        const winnerToken = parts[1];
+        const bidPercent = Number(parts[2].replace("%", "").trim());
+
+        if (!Number.isInteger(roundNumber) || roundNumber < 1 || roundNumber > members.length) {
+          warnings.push(`Dòng ${lineIndex + 1}: kỳ không hợp lệ, sẽ bỏ qua.`);
+          continue;
+        }
+
+        if (!Number.isFinite(bidPercent) || bidPercent <= 0 || bidPercent > 80) {
+          warnings.push(`Dòng ${lineIndex + 1}: % bỏ hụi không hợp lệ, sẽ bỏ qua.`);
+          continue;
+        }
+
+        const winner = memberById.get(winnerToken) || memberByName.get(winnerToken.toLowerCase());
+        if (!winner) {
+          warnings.push(`Dòng ${lineIndex + 1}: không tìm thấy "${winnerToken}", kỳ ${roundNumber} sẽ random nếu tới lượt.`);
+          plan.set(roundNumber, {
+            winnerId: null,
+            bidPercent,
+            source: "invalid-name"
+          });
+          continue;
+        }
+
+        plan.set(roundNumber, {
+          winnerId: winner.id,
+          bidPercent,
+          source: "manual"
+        });
+      }
+
+      return { plan, warnings };
+    }
+
+    function cloneMembers(members) {
+      return members.map(member => ({ ...member }));
+    }
+
+    function updateNetCashflow(member) {
+      member.netCashflow = member.totalReceived - member.totalPaid;
+    }
+
+    function createRandomBids(liveMembers, theoreticalPot) {
+      const bidPercents = liveMembers.map(member => ({
+        memberId: member.id,
+        bidPercent: randomBid()
+      }));
+
+      const winnerBid = bidPercents.reduce((best, bid) => bid.bidPercent > best.bidPercent ? bid : best, bidPercents[0]);
+
+      return {
+        winnerId: winnerBid.memberId,
+        winningBidPercent: winnerBid.bidPercent,
+        bidPercents,
+        theoreticalPot
+      };
+    }
+
+    function createManualBids(liveMembers, planEntry, theoreticalPot) {
+      if (!planEntry || !planEntry.winnerId || !liveMembers.some(member => member.id === planEntry.winnerId)) {
+        return createRandomBids(liveMembers, theoreticalPot);
+      }
+
+      const winnerId = planEntry.winnerId;
+      const winningBidPercent = planEntry.bidPercent;
+      const bidPercents = liveMembers.map(member => {
+        if (member.id === winnerId) {
+          return { memberId: member.id, bidPercent: winningBidPercent };
+        }
+
+        const maxOtherBid = Math.max(0.2, Math.min(25, winningBidPercent - 0.2));
+        const minOtherBid = Math.min(3, maxOtherBid);
+        return {
+          memberId: member.id,
+          bidPercent: Math.round((minOtherBid + Math.random() * (maxOtherBid - minOtherBid)) * 10) / 10
+        };
+      });
+
+      return {
+        winnerId,
+        winningBidPercent,
+        bidPercents,
+        theoreticalPot
+      };
+    }
+
+    function buildSimulation() {
+      pause();
+
+      const contributionAmount = parseMoney(els.contributionAmount.value);
+      const numberOfMembers = Math.max(2, Math.min(16, Number(els.numberOfMembers.value) || 8));
+      const hostFeePercent = Math.max(0, Math.min(30, Number(els.hostFeePercent.value) || 0));
+      const hostName = els.hostName.value.trim() || "Chủ hụi";
+      const auctionMode = getAuctionMode();
+
+      els.numberOfMembers.value = numberOfMembers;
+      els.contributionAmount.value = new Intl.NumberFormat("vi-VN").format(contributionAmount || 1000000);
+
+      const settings = {
+        contributionAmount: contributionAmount || 1000000,
+        numberOfMembers,
+        hostName,
+        hostFeePercent,
+        auctionMode
+      };
+
+      const initialMembers = getConfiguredNames(numberOfMembers).map((name, index) => ({
+        id: index + 1,
+        name,
+        status: "live",
+        hasWon: false,
+        wonRound: null,
+        totalPaid: 0,
+        totalReceived: 0,
+        totalBidDiscount: 0,
+        netCashflow: 0
+      }));
+
+      const { plan, warnings } = parseAuctionPlan(auctionMode === "manual" ? els.auctionPlan.value : "", initialMembers);
+
+      const rounds = [];
+      const snapshots = [];
+      const workingMembers = cloneMembers(initialMembers);
+
+      for (let roundNumber = 1; roundNumber <= numberOfMembers; roundNumber += 1) {
+        const liveMembersBefore = workingMembers.filter(member => member.status === "live").map(member => member.id);
+        const deadMembersBefore = workingMembers.filter(member => member.status === "dead").map(member => member.id);
+        const theoreticalPot = settings.contributionAmount * settings.numberOfMembers;
+        const hostFee = theoreticalPot * settings.hostFeePercent / 100;
+        const planEntry = plan.get(roundNumber);
+        const auction = auctionMode === "manual"
+          ? createManualBids(workingMembers.filter(member => liveMembersBefore.includes(member.id)), planEntry, theoreticalPot)
+          : createRandomBids(workingMembers.filter(member => liveMembersBefore.includes(member.id)), theoreticalPot);
+
+        const winnerId = auction.winnerId;
+        const winningBidPercent = auction.winningBidPercent;
+        const bidMap = new Map(auction.bidPercents.map(bid => [bid.memberId, bid.bidPercent]));
+        const bids = workingMembers.map(member => {
+          const eligible = liveMembersBefore.includes(member.id);
+          const bidPercent = eligible ? bidMap.get(member.id) : null;
+          const bidAmount = eligible ? settings.contributionAmount * bidPercent / 100 : null;
+
+          return {
+            memberId: member.id,
+            eligible,
+            bidPercent,
+            bidAmount,
+            isWinner: member.id === winnerId
+          };
+        });
+
+        const winner = workingMembers.find(member => member.id === winnerId);
+        const winningBidAmount = settings.contributionAmount * winningBidPercent / 100;
+        const liveContributionAmount = Math.max(0, settings.contributionAmount - winningBidAmount);
+        const deadContributionAmount = settings.contributionAmount;
+        const totalBidDiscount = liveMembersBefore.length * winningBidAmount;
+        const collectedPot = (liveMembersBefore.length * liveContributionAmount) + (deadMembersBefore.length * deadContributionAmount);
+        const payout = collectedPot - hostFee;
+
+        for (const member of workingMembers) {
+          const contributionPaid = liveMembersBefore.includes(member.id) ? liveContributionAmount : deadContributionAmount;
+          const bid = bids.find(item => item.memberId === member.id);
+          member.totalPaid += contributionPaid;
+          bid.contributionPaid = contributionPaid;
+        }
+
+        winner.totalReceived += payout;
+        winner.totalBidDiscount += totalBidDiscount;
+        winner.status = "dead";
+        winner.hasWon = true;
+        winner.wonRound = roundNumber;
+
+        for (const member of workingMembers) {
+          updateNetCashflow(member);
+        }
+
+        rounds.push({
+          roundNumber,
+          liveMembersBefore,
+          deadMembersBefore,
+          bids,
+          winnerId,
+          winningBidPercent,
+          theoreticalPot,
+          collectedPot,
+          hostFee,
+          bidDiscount: winningBidAmount,
+          totalBidDiscount,
+          liveContributionAmount,
+          deadContributionAmount,
+          payout
+        });
+
+        snapshots.push(cloneMembers(workingMembers));
+      }
+
+      if (warnings.length > 0) {
+        els.validationWarning.classList.add("show");
+        els.validationWarning.innerHTML = warnings.map(message => `<div>${escapeHtml(message)}</div>`).join("");
+      } else {
+        els.validationWarning.classList.remove("show");
+        els.validationWarning.textContent = "";
+      }
+
+      state.settings = settings;
+      state.initialMembers = initialMembers;
+      state.rounds = rounds;
+      state.snapshots = snapshots;
+      state.currentRoundIndex = 0;
+      state.currentPhase = 0;
+
+      els.emptyState.style.display = "none";
+      els.simulationView.style.display = "block";
+      els.hostNodeName.textContent = settings.hostName;
+      els.potAmount.textContent = formatVND(rounds[0].collectedPot);
+
+      populateRoundSelect();
+      render();
+    }
+
+    function resetSimulation() {
+      pause();
+      state.settings = null;
+      state.initialMembers = [];
+      state.rounds = [];
+      state.snapshots = [];
+      state.currentRoundIndex = 0;
+      state.currentPhase = 0;
+
+      els.emptyState.style.display = "grid";
+      els.simulationView.style.display = "none";
+      els.validationWarning.classList.remove("show");
+      els.validationWarning.textContent = "";
+      els.effectsLayer.innerHTML = "";
+      els.membersLayer.innerHTML = "";
+    }
+
+    function populateRoundSelect() {
+      els.roundSelect.innerHTML = state.rounds
+        .map(round => `<option value="${round.roundNumber - 1}">Kỳ ${round.roundNumber}</option>`)
+        .join("");
+    }
+
+    function render() {
+      if (!state.rounds.length) return;
+
+      els.roundSelect.value = String(state.currentRoundIndex);
+      renderArena();
+      renderRoundInfo();
+      renderAuctionTable();
+      renderSummaryTable();
+      renderMemberTable();
+      renderCharts();
+      renderPhaseEffects();
+      updateControlState();
+    }
+
+    function renderArena() {
+      const round = currentRound();
+      const snapshot = currentSnapshot();
+      const beforeStatus = new Map([
+        ...round.liveMembersBefore.map(id => [id, "live"]),
+        ...round.deadMembersBefore.map(id => [id, "dead"])
+      ]);
+
+      const useAfterStatus = state.currentPhase >= 4;
+      const membersForStatus = useAfterStatus ? snapshot : state.initialMembers.map(member => ({
+        ...member,
+        status: beforeStatus.get(member.id) || "live"
+      }));
+
+      const count = state.initialMembers.length;
+      const isSmall = window.innerWidth < 720;
+      const radiusX = isSmall ? 38 : 41;
+      const radiusY = isSmall ? 35 : 38;
+
+      els.membersLayer.innerHTML = state.initialMembers.map((baseMember, index) => {
+        const angle = -90 + index * (360 / count);
+        const x = 50 + Math.cos(angle * Math.PI / 180) * radiusX;
+        const y = 50 + Math.sin(angle * Math.PI / 180) * radiusY;
+        const statusMember = membersForStatus.find(member => member.id === baseMember.id);
+        const status = statusMember.status;
+        const isWinner = baseMember.id === round.winnerId;
+        const classes = [
+          "member-node",
+          status === "dead" ? "dead-now" : "",
+          isWinner ? "winner" : ""
+        ].filter(Boolean).join(" ");
+
+        return `
+          <div class="${classes}" data-member-id="${baseMember.id}" style="left:${x}%; top:${y}%;">
+            <div>
+              <div class="node-name">${escapeHtml(baseMember.name)}</div>
+              <div class="node-id">ID ${baseMember.id}</div>
+              <span class="badge ${status === "dead" ? "dead" : ""}">${status === "live" ? "Hụi sống" : "Hụi chết"}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderRoundInfo() {
+      const round = currentRound();
+      const winner = memberById(round.winnerId);
+      const liveNames = round.liveMembersBefore.map(id => memberById(id).name).join(", ");
+      const deadNames = round.deadMembersBefore.length
+        ? round.deadMembersBefore.map(id => memberById(id).name).join(", ")
+        : "Chưa có";
+      els.potAmount.textContent = formatVND(round.collectedPot);
+
+      els.roundInfo.innerHTML = `
+        <div class="metric"><span>Kỳ số</span><strong>${round.roundNumber}</strong></div>
+        <div class="metric"><span>Người thắng kỳ này</span><strong>${escapeHtml(winner.name)}</strong></div>
+        <div class="metric"><span>Mức bỏ hụi thắng</span><strong>${formatPercent(round.winningBidPercent)}</strong></div>
+        <div class="metric"><span>Số tiền bỏ hụi / chân</span><strong>${formatVND(round.bidDiscount)}</strong></div>
+        <div class="metric"><span>Hụi sống góp mỗi người</span><strong>${formatVND(round.liveContributionAmount)}</strong></div>
+        <div class="metric"><span>Hụi chết góp mỗi người</span><strong>${formatVND(round.deadContributionAmount)}</strong></div>
+        <div class="metric"><span>Quỹ lý thuyết</span><strong>${formatVND(round.theoreticalPot)}</strong></div>
+        <div class="metric"><span>Quỹ thực thu</span><strong>${formatVND(round.collectedPot)}</strong></div>
+        <div class="metric"><span>Hoa hồng chủ hụi</span><strong>${formatVND(round.hostFee)}</strong></div>
+        <div class="metric"><span>Người thắng thực nhận</span><strong>${formatVND(round.payout)}</strong></div>
+        <div class="metric"><span>Hụi sống trước kỳ</span><strong>${escapeHtml(liveNames)}</strong></div>
+        <div class="metric"><span>Hụi chết trước kỳ</span><strong>${escapeHtml(deadNames)}</strong></div>
+        <div class="note">Chỉ các hụi sống được đấu giá. Sau khi thắng, người này chuyển sang hụi chết nhưng vẫn đóng các kỳ sau.</div>
+      `;
+    }
+
+    function renderAuctionTable() {
+      const round = currentRound();
+
+      els.auctionTable.innerHTML = round.bids.map(bid => {
+        const member = memberById(bid.memberId);
+        const status = bid.eligible ? "live" : "dead";
+        return `
+          <tr class="${bid.isWinner ? "win-row" : ""}">
+            <td><strong>${escapeHtml(member.name)}</strong></td>
+            <td><span class="pill ${status}">${status === "live" ? "Hụi sống" : "Hụi chết"}</span></td>
+            <td>${bid.eligible ? "Có" : "<span class='pill no'>Không được đấu giá</span>"}</td>
+            <td>${bid.eligible ? formatPercent(bid.bidPercent) : "—"}</td>
+            <td>${bid.eligible ? formatVND(bid.bidAmount) : "—"}</td>
+            <td>${formatVND(bid.contributionPaid)}</td>
+            <td>${bid.isWinner ? "<strong>Thắng</strong>" : "Không"}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderSummaryTable() {
+      els.summaryTable.innerHTML = state.rounds.map((round, index) => {
+        const winner = memberById(round.winnerId);
+        const liveNames = round.liveMembersBefore.map(id => memberById(id).name).join(", ");
+        const deadNames = round.deadMembersBefore.length
+          ? round.deadMembersBefore.map(id => memberById(id).name).join(", ")
+          : "Chưa có";
+
+        return `
+          <tr class="${index === state.currentRoundIndex ? "win-row" : ""}">
+            <td>${round.roundNumber}</td>
+            <td><strong>${escapeHtml(winner.name)}</strong></td>
+            <td>${formatPercent(round.winningBidPercent)}</td>
+            <td>${formatVND(round.bidDiscount)}</td>
+            <td>${formatVND(round.collectedPot)}</td>
+            <td>${formatVND(round.hostFee)}</td>
+            <td>${formatVND(round.payout)}</td>
+            <td>${escapeHtml(liveNames)}</td>
+            <td>${escapeHtml(deadNames)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderMemberTable() {
+      const snapshot = currentSnapshot();
+
+      els.memberTable.innerHTML = snapshot.map(member => `
+        <tr class="${member.id === currentRound().winnerId ? "win-row" : ""}">
+          <td><strong>${escapeHtml(member.name)}</strong></td>
+          <td><span class="pill ${member.status}">${member.status === "live" ? "Hụi sống" : "Hụi chết"}</span></td>
+          <td>${formatVND(member.totalPaid)}</td>
+          <td>${formatVND(member.totalReceived)}</td>
+          <td>${formatVND(member.totalBidDiscount)}</td>
+          <td><strong>${formatVND(member.netCashflow)}</strong></td>
+          <td>${member.wonRound ? `Kỳ ${member.wonRound}` : "—"}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderCharts() {
+      const payoutRows = state.snapshots[state.snapshots.length - 1]
+        .filter(member => member.hasWon)
+        .sort((a, b) => a.wonRound - b.wonRound);
+
+      const maxPayout = Math.max(...payoutRows.map(member => member.totalReceived), 1);
+      els.payoutChart.innerHTML = payoutRows.map(member => `
+        <div class="bar-row">
+          <div class="bar-name">${escapeHtml(member.name)}<br><span class="hint">Kỳ ${member.wonRound}</span></div>
+          <div class="bar-track">
+            <div class="bar" style="width:${Math.max(3, member.totalReceived / maxPayout * 100)}%; background:var(--green);"></div>
+          </div>
+          <div class="bar-value">${formatVND(member.totalReceived)}</div>
+        </div>
+      `).join("");
+
+      const snapshot = currentSnapshot();
+      const maxAbsNet = Math.max(...snapshot.map(member => Math.abs(member.netCashflow)), 1);
+
+      els.netChart.innerHTML = snapshot.map(member => {
+        const width = Math.max(2, Math.abs(member.netCashflow) / maxAbsNet * 50);
+        const barClass = member.netCashflow < 0 ? "negative" : "positive";
+
+        return `
+          <div class="bar-row">
+            <div class="bar-name">${escapeHtml(member.name)}</div>
+            <div class="bar-track">
+              <div class="bar zero-line"></div>
+              <div class="bar ${barClass}" style="width:${width}%;"></div>
+            </div>
+            <div class="bar-value">${formatVND(member.netCashflow)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderPhaseEffects() {
+      const phase = phaseCopy[state.currentPhase];
+      const round = currentRound();
+      const winner = memberById(round.winnerId);
+
+      els.effectsLayer.innerHTML = "";
+      els.phaseLabel.textContent = phase.short;
+      els.phaseTitle.textContent = phase.title;
+      els.phaseDescription.textContent = phase.description;
+
+      requestAnimationFrame(() => {
+        if (state.currentPhase === 0) {
+          for (const member of state.initialMembers) {
+            const memberNode = getMemberNode(member.id);
+            const bid = round.bids.find(item => item.memberId === member.id);
+            createFlow(memberNode, els.potNode, "var(--orange)", `góp ${formatVND(bid.contributionPaid)}`);
+          }
+        }
+
+        if (state.currentPhase === 1) {
+          createFlow(els.potNode, els.hostNode, "var(--blue)", `Hoa hồng chủ hụi: ${formatVND(round.hostFee)}`);
+        }
+
+        if (state.currentPhase === 2) {
+          const winnerNode = getMemberNode(round.winnerId);
+          createFlow(els.potNode, winnerNode, "var(--purple)", `${winner.name} bỏ hụi ${formatPercent(round.winningBidPercent)} = ${formatVND(round.bidDiscount)} / chân`);
+        }
+
+        if (state.currentPhase === 3) {
+          const winnerNode = getMemberNode(round.winnerId);
+          createFlow(els.potNode, winnerNode, "var(--green)", `${winner.name} thực nhận ${formatVND(round.payout)}`);
+        }
+
+        if (state.currentPhase === 4) {
+          const winnerNode = getMemberNode(round.winnerId);
+          const point = centerOf(winnerNode);
+          createLabel(point.x, point.y - 58, "var(--orange)", `${winner.name} chuyển sang hụi chết`);
+        }
+      });
+    }
+
+    function createFlow(fromEl, toEl, color, label) {
+      const from = centerOf(fromEl);
+      const to = centerOf(toEl);
+      const particle = document.createElement("div");
+
+      particle.className = "particle";
+      particle.style.setProperty("--x", `${from.x}px`);
+      particle.style.setProperty("--y", `${from.y}px`);
+      particle.style.setProperty("--dx", `${to.x - from.x}px`);
+      particle.style.setProperty("--dy", `${to.y - from.y}px`);
+      particle.style.setProperty("--c", color);
+      els.effectsLayer.appendChild(particle);
+
+      const labelX = from.x + (to.x - from.x) * 0.55;
+      const labelY = from.y + (to.y - from.y) * 0.55;
+      createLabel(labelX, labelY, color, label);
+    }
+
+    function createLabel(x, y, color, label) {
+      const labelEl = document.createElement("div");
+      labelEl.className = "flow-label";
+      labelEl.style.setProperty("--x", `${x}px`);
+      labelEl.style.setProperty("--y", `${y}px`);
+      labelEl.style.setProperty("--c", color);
+      labelEl.textContent = label;
+      els.effectsLayer.appendChild(labelEl);
+    }
+
+    function centerOf(element) {
+      const arenaRect = els.arena.getBoundingClientRect();
+      const rect = element.getBoundingClientRect();
+
+      return {
+        x: rect.left - arenaRect.left + rect.width / 2,
+        y: rect.top - arenaRect.top + rect.height / 2
+      };
+    }
+
+    function getMemberNode(memberId) {
+      return els.membersLayer.querySelector(`[data-member-id="${memberId}"]`);
+    }
+
+    function currentRound() {
+      return state.rounds[state.currentRoundIndex];
+    }
+
+    function currentSnapshot() {
+      return state.snapshots[state.currentRoundIndex];
+    }
+
+    function memberById(memberId) {
+      return state.initialMembers.find(member => member.id === memberId);
+    }
+
+    function nextPhase() {
+      if (!state.rounds.length) return;
+
+      if (state.currentPhase < phaseCopy.length - 1) {
+        state.currentPhase += 1;
+      } else if (state.currentRoundIndex < state.rounds.length - 1) {
+        state.currentRoundIndex += 1;
+        state.currentPhase = 0;
+      } else {
+        pause();
+        state.currentPhase = phaseCopy.length - 1;
+      }
+
+      render();
+    }
+
+    function previousRound() {
+      pause();
+      state.currentRoundIndex = Math.max(0, state.currentRoundIndex - 1);
+      state.currentPhase = 0;
+      render();
+    }
+
+    function nextRound() {
+      pause();
+      state.currentRoundIndex = Math.min(state.rounds.length - 1, state.currentRoundIndex + 1);
+      state.currentPhase = 0;
+      render();
+    }
+
+    function play() {
+      if (!state.rounds.length || state.playing) return;
+      state.playing = true;
+      state.timer = window.setInterval(nextPhase, 1350);
+      updateControlState();
+    }
+
+    function pause() {
+      state.playing = false;
+      if (state.timer) {
+        window.clearInterval(state.timer);
+        state.timer = null;
+      }
+      updateControlState();
+    }
+
+    function updateControlState() {
+      els.playBtn.disabled = state.playing || !state.rounds.length;
+      els.pauseBtn.disabled = !state.playing;
+      els.prevBtn.disabled = !state.rounds.length || state.currentRoundIndex === 0;
+      els.nextBtn.disabled = !state.rounds.length || state.currentRoundIndex === state.rounds.length - 1;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    document.querySelectorAll(".tab-btn").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(item => item.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(item => item.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tab).classList.add("active");
+      });
+    });
+
+    els.randomNames.addEventListener("click", () => {
+      const count = Math.max(2, Math.min(16, Number(els.numberOfMembers.value) || 8));
+      els.memberNames.value = makeMemberNames(count).join(", ");
+    });
+
+    els.createSimulation.addEventListener("click", buildSimulation);
+    els.resetSimulation.addEventListener("click", resetSimulation);
+    els.playBtn.addEventListener("click", play);
+    els.pauseBtn.addEventListener("click", pause);
+    els.prevBtn.addEventListener("click", previousRound);
+    els.nextBtn.addEventListener("click", nextRound);
+
+    els.roundSelect.addEventListener("change", event => {
+      pause();
+      state.currentRoundIndex = Number(event.target.value);
+      state.currentPhase = 0;
+      render();
+    });
+
+    els.numberOfMembers.addEventListener("change", () => {
+      const count = Math.max(2, Math.min(16, Number(els.numberOfMembers.value) || 8));
+      els.numberOfMembers.value = count;
+      els.memberNames.value = makeMemberNames(count).join(", ");
+      resetSimulation();
+    });
+
+    window.addEventListener("resize", () => {
+      if (state.rounds.length) {
+        renderArena();
+        renderPhaseEffects();
+      }
+    });
+
+    buildSimulation();
+  </script>
+</body>
+</html>
