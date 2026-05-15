@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Static Web</title>
+  <style>
+    :root {
+      --ink: #1d2528;
+      --muted: #667174;
+      --line: #dfe5df;
+      --panel: #ffffff;
+      --green: #16a34a;
+      --orange: #f59e0b;
+      --blue: #2f80ed;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 18% 18%, rgba(47, 128, 237, 0.13), transparent 0 260px),
+        radial-gradient(circle at 82% 14%, rgba(245, 158, 11, 0.13), transparent 0 230px),
+        linear-gradient(180deg, #ffffff, #f5f7f4);
+    }
+
+    main {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+      gap: 24px;
+      align-items: center;
+      min-height: calc(100vh - 64px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(36px, 6vw, 72px);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 16px 0 0;
+      max-width: 620px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      border-radius: 8px;
+      padding: 0 16px;
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    .primary {
+      color: #ffffff;
+      background: var(--green);
+      box-shadow: 0 14px 28px rgba(22, 163, 74, 0.18);
+    }
+
+    .secondary {
+      color: var(--ink);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .preview {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 18px 42px rgba(29, 37, 40, 0.1);
+    }
+
+    .preview h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .flow {
+      display: grid;
+      gap: 12px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #ffffff;
+    }
+
+    .number {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      color: #ffffff;
+      background: var(--orange);
+      font-weight: 900;
+    }
+
+    .step strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .step span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 820px) {
+      .hero {
+        grid-template-columns: 1fr;
+        align-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero" aria-labelledby="pageTitle">
+      <div>
+        <h1 id="pageTitle">Static Web</h1>
+        <p>Một trang tĩnh nhỏ để gom các mô phỏng học tập. Hiện có mô phỏng hụi đấu giá bằng HTML, CSS và JavaScript thuần.</p>
+        <div class="actions">
+          <a class="primary" href="hui-dau-gia.html">Mở mô phỏng hụi đấu giá</a>
+          <a class="secondary" href="https://github.com/zt-hky/static-web">Xem repository</a>
+        </div>
+      </div>
+
+      <aside class="preview" aria-label="Nội dung mô phỏng">
+        <h2>Trong mô phỏng hụi đấu giá</h2>
+        <div class="flow">
+          <div class="step">
+            <div class="number">1</div>
+            <div><strong>Đấu giá từng kỳ</strong><span>Chỉ hụi sống được bỏ hụi, người bỏ cao nhất thắng.</span></div>
+          </div>
+          <div class="step">
+            <div class="number">2</div>
+            <div><strong>Dòng tiền rõ ràng</strong><span>Hụi sống góp phần đã giảm, hụi chết góp đủ tiền chân hụi.</span></div>
+          </div>
+          <div class="step">
+            <div class="number">3</div>
+            <div><strong>Kết quả từng người</strong><span>Theo dõi tiền đã đóng, tiền đã nhận và net cashflow.</span></div>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>
