@@ -180,6 +180,10 @@
       align-items: start;
     }
 
+    .grid.config-collapsed {
+      grid-template-columns: 86px minmax(0, 1fr);
+    }
+
     .panel {
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -215,6 +219,18 @@
 
     .config.collapsed .panel-body {
       display: none;
+    }
+
+    .config.collapsed .panel-header {
+      display: grid;
+      justify-items: center;
+      padding: 12px 8px;
+    }
+
+    .config.collapsed .panel-header h2 {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 15px;
     }
 
     .icon-button {
@@ -332,6 +348,10 @@
     .arena {
       position: relative;
       min-height: 620px;
+      min-width: 360px;
+      width: 100%;
+      max-width: 100%;
+      resize: both;
       overflow: hidden;
       border-radius: var(--radius);
       background:
@@ -343,9 +363,43 @@
     .arena-viewport {
       position: relative;
       min-height: inherit;
-      transform: translate(var(--pan-x, 0px), var(--pan-y, 0px)) scale(var(--zoom, 1));
       transform-origin: 50% 50%;
-      transition: transform 220ms ease;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .arena-viewport:active {
+      cursor: grabbing;
+    }
+
+    .arena-tools {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid rgba(223, 229, 223, 0.88);
+      border-radius: 8px;
+      padding: 7px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 10px 24px rgba(29, 37, 40, 0.12);
+      backdrop-filter: blur(12px);
+    }
+
+    .arena-tools button {
+      min-width: 36px;
+      height: 34px;
+      padding: 0 10px;
+      color: var(--ink);
+      background: #edf1ed;
+    }
+
+    .arena-tools button.primary-tool {
+      color: #fff;
+      background: var(--blue);
     }
 
     .zoom-status {
@@ -387,6 +441,31 @@
     .member-node[data-hover-member],
     [data-hover-member] {
       cursor: help;
+    }
+
+    .member-node.manual-pickable {
+      cursor: crosshair;
+    }
+
+    .member-node.manual-pickable::after {
+      content: "Click để vote";
+      position: absolute;
+      left: 50%;
+      bottom: -24px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: #fff;
+      background: var(--purple);
+      font-size: 10px;
+      font-weight: 900;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 160ms ease;
+    }
+
+    .member-node.manual-pickable:hover::after {
+      opacity: 1;
     }
 
     .member-node.dead-now {
@@ -1055,6 +1134,7 @@
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
 </head>
 <body>
   <main class="app">
@@ -1153,6 +1233,12 @@
                 </div>
                 <div class="panel-body" style="padding:0;">
                   <div id="arena" class="arena">
+                    <div class="arena-tools" aria-label="Điều khiển khung mô phỏng">
+                      <button id="zoomOutBtn" type="button" title="Zoom out">-</button>
+                      <span id="zoomStatus" class="zoom-status">100%</span>
+                      <button id="zoomInBtn" type="button" title="Zoom in">+</button>
+                      <button id="centerBtn" class="primary-tool" type="button" title="Center">Center</button>
+                    </div>
                     <div id="arenaViewport" class="arena-viewport">
                       <div class="phase-banner">
                         <strong id="phaseTitle">Phase 1 - Collect</strong>
@@ -1175,10 +1261,6 @@
                     <button class="secondary" id="pauseBtn">Pause</button>
                     <button class="secondary" id="prevBtn">Kỳ trước</button>
                     <button class="secondary" id="nextBtn">Kỳ sau</button>
-                    <button class="secondary" id="zoomOutBtn">Zoom -</button>
-                    <span id="zoomStatus" class="zoom-status">100%</span>
-                    <button class="secondary" id="zoomInBtn">Zoom +</button>
-                    <button class="secondary" id="centerBtn">Center</button>
                     <select id="roundSelect" aria-label="Chọn trực tiếp kỳ"></select>
                   </div>
                 </div>
@@ -1423,9 +1505,7 @@
       currentPhase: 0,
       playing: false,
       timer: null,
-      zoom: 1,
-      panX: 0,
-      panY: 0,
+      panzoom: null,
       charts: {
         payout: null,
         net: null,
@@ -1905,10 +1985,12 @@
         const statusMember = membersForStatus.find(member => member.id === baseMember.id);
         const status = statusMember.status;
         const isWinner = baseMember.id === round.winnerId;
+        const manualPickable = getAuctionMode() === "manual" && round.liveMembersBefore.includes(baseMember.id) && !round.isCarryRound;
         const classes = [
           "member-node",
           status === "dead" ? "dead-now" : "",
-          isWinner ? "winner" : ""
+          isWinner ? "winner" : "",
+          manualPickable ? "manual-pickable" : ""
         ].filter(Boolean).join(" ");
 
         return `
@@ -2360,23 +2442,45 @@
       els.nextBtn.disabled = !state.rounds.length || state.currentRoundIndex === state.rounds.length - 1;
     }
 
-    function updateArenaTransform() {
-      els.arenaViewport.style.setProperty("--zoom", state.zoom);
-      els.arenaViewport.style.setProperty("--pan-x", `${state.panX}px`);
-      els.arenaViewport.style.setProperty("--pan-y", `${state.panY}px`);
-      els.zoomStatus.textContent = `${Math.round(state.zoom * 100)}%`;
+    function initializePanzoom() {
+      if (!window.Panzoom || state.panzoom) return;
+
+      state.panzoom = Panzoom(els.arenaViewport, {
+        maxScale: 1.7,
+        minScale: 0.65,
+        step: 0.12,
+        contain: "outside",
+        cursor: "grab"
+      });
+
+      els.arena.addEventListener("wheel", state.panzoom.zoomWithWheel, { passive: false });
+      els.arenaViewport.addEventListener("panzoomchange", updateZoomStatus);
+      updateZoomStatus();
     }
 
-    function setZoom(nextZoom) {
-      state.zoom = Math.max(0.7, Math.min(1.55, Math.round(nextZoom * 100) / 100));
-      updateArenaTransform();
+    function updateZoomStatus() {
+      const scale = state.panzoom ? state.panzoom.getScale() : 1;
+      els.zoomStatus.textContent = `${Math.round(scale * 100)}%`;
+    }
+
+    function zoomArena(direction) {
+      initializePanzoom();
+      if (!state.panzoom) return;
+
+      if (direction > 0) {
+        state.panzoom.zoomIn({ animate: true });
+      } else {
+        state.panzoom.zoomOut({ animate: true });
+      }
+
+      setTimeout(updateZoomStatus, 180);
     }
 
     function centerArena() {
-      state.zoom = 1;
-      state.panX = 0;
-      state.panY = 0;
-      updateArenaTransform();
+      initializePanzoom();
+      if (!state.panzoom) return;
+      state.panzoom.reset({ animate: true });
+      setTimeout(updateZoomStatus, 180);
     }
 
     function enableMemberHover() {
@@ -2385,6 +2489,43 @@
         element.onmousemove = movePlayerTooltip;
         element.onmouseleave = hidePlayerTooltip;
       });
+
+      document.querySelectorAll(".member-node.manual-pickable").forEach(element => {
+        element.onclick = event => {
+          event.stopPropagation();
+          handleManualMemberPick(Number(element.dataset.memberId));
+        };
+      });
+    }
+
+    function handleManualMemberPick(memberId) {
+      if (getAuctionMode() !== "manual" || !state.rounds.length) return;
+
+      const round = currentRound();
+      if (round.isCarryRound || !round.liveMembersBefore.includes(memberId)) return;
+
+      const member = memberById(memberId);
+      const currentRow = els.manualPlanRows.querySelector(`.manual-row[data-round="${round.roundNumber}"]`);
+      if (!currentRow) return;
+
+      const currentValue = currentRow.querySelector(".manual-bid")?.value || "";
+      const answer = window.prompt(`Nhập số tiền vote cao nhất cho ${member.name} ở kỳ ${round.roundNumber}`, currentValue || "200.000");
+      if (answer === null) return;
+
+      const bidAmount = parseMoney(answer);
+      if (!bidAmount || bidAmount >= state.settings.contributionAmount) {
+        window.alert("Tiền vote phải lớn hơn 0 và nhỏ hơn số tiền mỗi chân hụi.");
+        return;
+      }
+
+      currentRow.querySelector(".manual-winner").value = String(memberId);
+      currentRow.querySelector(".manual-bid").value = new Intl.NumberFormat("vi-VN").format(bidAmount);
+
+      const previousRoundIndex = state.currentRoundIndex;
+      buildSimulation();
+      state.currentRoundIndex = Math.min(previousRoundIndex, state.rounds.length - 1);
+      state.currentPhase = 0;
+      render();
     }
 
     function showPlayerTooltip(event, memberId) {
@@ -2452,13 +2593,20 @@
     els.pauseBtn.addEventListener("click", pause);
     els.prevBtn.addEventListener("click", previousRound);
     els.nextBtn.addEventListener("click", nextRound);
-    els.zoomOutBtn.addEventListener("click", () => setZoom(state.zoom - 0.1));
-    els.zoomInBtn.addEventListener("click", () => setZoom(state.zoom + 0.1));
+    els.zoomOutBtn.addEventListener("click", () => zoomArena(-1));
+    els.zoomInBtn.addEventListener("click", () => zoomArena(1));
     els.centerBtn.addEventListener("click", centerArena);
     els.toggleConfig.addEventListener("click", () => {
       const config = document.querySelector(".config");
+      const grid = document.querySelector(".grid");
       config.classList.toggle("collapsed");
+      grid.classList.toggle("config-collapsed", config.classList.contains("collapsed"));
       els.toggleConfig.textContent = config.classList.contains("collapsed") ? "Mở rộng" : "Thu gọn";
+      setTimeout(() => {
+        Object.values(state.charts).forEach(chart => {
+          if (chart) chart.resize();
+        });
+      }, 180);
     });
 
     els.roundSelect.addEventListener("change", event => {
@@ -2482,12 +2630,12 @@
       if (state.rounds.length) {
         renderArena();
         renderPhaseEffects();
-        updateArenaTransform();
+        updateZoomStatus();
       }
     });
 
     renderManualPlanRows();
-    updateArenaTransform();
+    initializePanzoom();
     buildSimulation();
   </script>
 </body>
