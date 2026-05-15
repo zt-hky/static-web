@@ -318,6 +318,11 @@
       box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.27), 0 14px 28px rgba(245, 158, 11, 0.22);
     }
 
+    .member-node[data-hover-member],
+    [data-hover-member] {
+      cursor: help;
+    }
+
     .member-node.dead-now {
       background: var(--dead-bg);
     }
@@ -540,6 +545,77 @@
       margin-top: 16px;
     }
 
+    .vote-board {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 10px;
+    }
+
+    .vote-card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .vote-card.winner {
+      border-color: rgba(245, 158, 11, 0.7);
+      background: #fff8df;
+      box-shadow: 0 10px 24px rgba(245, 158, 11, 0.14);
+    }
+
+    .vote-card.ineligible {
+      background: #f6f1f1;
+      opacity: 0.78;
+    }
+
+    .vote-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .vote-topline strong {
+      overflow-wrap: anywhere;
+    }
+
+    .vote-amount {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .vote-track {
+      position: relative;
+      height: 9px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #edf1ed;
+      margin-top: 10px;
+    }
+
+    .vote-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--purple), var(--orange));
+    }
+
+    .winner-ribbon {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: #7c3f00;
+      background: #ffe6a8;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
     .table-wrap {
       overflow: auto;
       border: 1px solid var(--line);
@@ -619,6 +695,28 @@
       border-radius: 8px;
       padding: 14px;
       background: #fff;
+    }
+
+    .chart.wide {
+      grid-column: 1 / -1;
+    }
+
+    .chart-canvas {
+      position: relative;
+      min-height: 280px;
+    }
+
+    .chart-canvas.tall {
+      min-height: 380px;
+    }
+
+    .chart-canvas canvas {
+      width: 100% !important;
+      height: 280px !important;
+    }
+
+    .chart-canvas.tall canvas {
+      height: 380px !important;
     }
 
     .chart h3 {
@@ -728,6 +826,78 @@
       line-height: 1.7;
     }
 
+    .history-layout {
+      display: grid;
+      gap: 16px;
+    }
+
+    .history-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .history-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .history-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .history-card strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 22px;
+      overflow-wrap: anywhere;
+    }
+
+    .player-tooltip {
+      position: fixed;
+      z-index: 1000;
+      display: none;
+      width: min(280px, calc(100vw - 24px));
+      border: 1px solid rgba(29, 37, 40, 0.14);
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      background: rgba(29, 37, 40, 0.96);
+      box-shadow: 0 18px 36px rgba(29, 37, 40, 0.24);
+      pointer-events: none;
+    }
+
+    .player-tooltip.show {
+      display: block;
+    }
+
+    .player-tooltip strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .tooltip-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      padding: 5px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 12px;
+    }
+
+    .tooltip-row span:first-child {
+      color: rgba(255, 255, 255, 0.68);
+    }
+
     .empty {
       display: grid;
       place-items: center;
@@ -801,6 +971,7 @@
       }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <main class="app">
@@ -811,6 +982,7 @@
       </div>
       <nav class="tabs" aria-label="Chọn nội dung">
         <button class="tab-btn active" data-tab="simulation">Mô phỏng</button>
+        <button class="tab-btn" data-tab="history">Lịch sử</button>
         <button class="tab-btn" data-tab="explanation">Giải thích</button>
       </nav>
     </header>
@@ -935,6 +1107,15 @@
             <div class="content-stack">
               <div class="panel">
                 <div class="panel-header">
+                  <h2>Bước vote kỳ hiện tại</h2>
+                </div>
+                <div class="panel-body">
+                  <div id="voteBoard" class="vote-board"></div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
                   <h2>Bảng đấu giá kỳ hiện tại</h2>
                 </div>
                 <div class="panel-body">
@@ -960,11 +1141,11 @@
               <div class="charts">
                 <div class="chart">
                   <h3>Số tiền thực nhận theo kỳ hốt</h3>
-                  <div id="payoutChart" class="bar-list"></div>
+                  <div class="chart-canvas"><canvas id="payoutChart"></canvas></div>
                 </div>
                 <div class="chart">
                   <h3>Net cashflow tại kỳ hiện tại</h3>
-                  <div id="netChart" class="bar-list"></div>
+                  <div class="chart-canvas"><canvas id="netChart"></canvas></div>
                 </div>
               </div>
 
@@ -1023,6 +1204,43 @@
       </div>
     </section>
 
+    <section id="history" class="tab-panel">
+      <div id="historyView" class="history-layout">
+        <div class="history-cards" id="historyCards"></div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Lịch sử vote, tiền nhận, cashflow</h2>
+          </div>
+          <div class="panel-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Kỳ</th>
+                    <th>Người thắng</th>
+                    <th>Vote thắng</th>
+                    <th>Bỏ hụi / chân</th>
+                    <th>Hụi sống góp</th>
+                    <th>Hụi chết góp</th>
+                    <th>Quỹ thực thu</th>
+                    <th>Thực nhận</th>
+                    <th>Net sau kỳ</th>
+                  </tr>
+                </thead>
+                <tbody id="historyTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart wide">
+          <h3>Cashflow tích lũy theo từng người qua các kỳ</h3>
+          <div class="chart-canvas tall"><canvas id="cashflowHistoryChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
     <section id="explanation" class="tab-panel">
       <div class="explain">
         <div class="explain-grid">
@@ -1064,6 +1282,8 @@
       </div>
     </section>
   </main>
+
+  <div id="playerTooltip" class="player-tooltip" role="tooltip"></div>
 
   <script>
     const VIETNAMESE_NAMES = [
@@ -1108,7 +1328,12 @@
       currentRoundIndex: 0,
       currentPhase: 0,
       playing: false,
-      timer: null
+      timer: null,
+      charts: {
+        payout: null,
+        net: null,
+        cashflowHistory: null
+      }
     };
 
     const els = {
@@ -1140,11 +1365,16 @@
       nextBtn: document.getElementById("nextBtn"),
       roundSelect: document.getElementById("roundSelect"),
       roundInfo: document.getElementById("roundInfo"),
+      voteBoard: document.getElementById("voteBoard"),
       auctionTable: document.getElementById("auctionTable"),
       memberTable: document.getElementById("memberTable"),
       summaryTable: document.getElementById("summaryTable"),
       payoutChart: document.getElementById("payoutChart"),
-      netChart: document.getElementById("netChart")
+      netChart: document.getElementById("netChart"),
+      historyCards: document.getElementById("historyCards"),
+      historyTable: document.getElementById("historyTable"),
+      cashflowHistoryChart: document.getElementById("cashflowHistoryChart"),
+      playerTooltip: document.getElementById("playerTooltip")
     };
 
     function formatVND(value) {
@@ -1162,6 +1392,29 @@
 
     function formatPercent(value) {
       return `${Number(value).toFixed(value % 1 === 0 ? 0 : 1)}%`;
+    }
+
+    function chartColor(index, alpha = 1) {
+      const colors = [
+        [47, 128, 237],
+        [22, 163, 74],
+        [245, 158, 11],
+        [139, 92, 246],
+        [214, 107, 107],
+        [15, 118, 110],
+        [236, 72, 153],
+        [82, 82, 91],
+        [37, 99, 235],
+        [101, 163, 13],
+        [217, 119, 6],
+        [124, 58, 237],
+        [220, 38, 38],
+        [8, 145, 178],
+        [190, 24, 93],
+        [63, 63, 70]
+      ];
+      const [red, green, blue] = colors[index % colors.length];
+      return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
     }
 
     function shuffle(array) {
@@ -1447,6 +1700,10 @@
       els.validationWarning.textContent = "";
       els.effectsLayer.innerHTML = "";
       els.membersLayer.innerHTML = "";
+      if (els.voteBoard) els.voteBoard.innerHTML = "";
+      if (els.historyCards) els.historyCards.innerHTML = "";
+      if (els.historyTable) els.historyTable.innerHTML = "";
+      destroyCharts();
     }
 
     function populateRoundSelect() {
@@ -1464,8 +1721,11 @@
       renderAuctionTable();
       renderSummaryTable();
       renderMemberTable();
+      renderVoteBoard();
+      renderHistory();
       renderCharts();
       renderPhaseEffects();
+      enableMemberHover();
       updateControlState();
     }
 
@@ -1502,7 +1762,7 @@
         ].filter(Boolean).join(" ");
 
         return `
-          <div class="${classes}" data-member-id="${baseMember.id}" style="left:${x}%; top:${y}%;">
+          <div class="${classes}" data-member-id="${baseMember.id}" data-hover-member="${baseMember.id}" style="left:${x}%; top:${y}%;">
             <div>
               <div class="node-name">${escapeHtml(baseMember.name)}</div>
               <div class="node-id">ID ${baseMember.id}</div>
@@ -1539,6 +1799,36 @@
       `;
     }
 
+    function renderVoteBoard() {
+      const round = currentRound();
+      const maxBidPercent = Math.max(...round.bids.filter(bid => bid.eligible).map(bid => bid.bidPercent), 1);
+      const orderedBids = [...round.bids].sort((left, right) => {
+        if (left.eligible !== right.eligible) return left.eligible ? -1 : 1;
+        return (right.bidPercent || 0) - (left.bidPercent || 0);
+      });
+
+      els.voteBoard.innerHTML = orderedBids.map(bid => {
+        const member = memberById(bid.memberId);
+        const width = bid.eligible ? Math.max(4, bid.bidPercent / maxBidPercent * 100) : 0;
+        const classes = ["vote-card", bid.isWinner ? "winner" : "", !bid.eligible ? "ineligible" : ""].filter(Boolean).join(" ");
+
+        return `
+          <div class="${classes}" data-hover-member="${member.id}">
+            <div class="vote-topline">
+              <strong>${escapeHtml(member.name)}</strong>
+              ${bid.isWinner ? "<span class='winner-ribbon'>Đang thắng</span>" : `<span class="pill ${bid.eligible ? "live" : "no"}">${bid.eligible ? "Được vote" : "Không vote"}</span>`}
+            </div>
+            <div class="vote-amount">
+              ${bid.eligible
+                ? `Vote ${formatPercent(bid.bidPercent)} = ${formatVND(bid.bidAmount)} / chân<br>Góp kỳ này: ${formatVND(bid.contributionPaid)}`
+                : `Hụi chết, góp đủ ${formatVND(bid.contributionPaid)}`}
+            </div>
+            <div class="vote-track" aria-hidden="true"><div class="vote-fill" style="width:${width}%;"></div></div>
+          </div>
+        `;
+      }).join("");
+    }
+
     function renderAuctionTable() {
       const round = currentRound();
 
@@ -1546,7 +1836,7 @@
         const member = memberById(bid.memberId);
         const status = bid.eligible ? "live" : "dead";
         return `
-          <tr class="${bid.isWinner ? "win-row" : ""}">
+          <tr class="${bid.isWinner ? "win-row" : ""}" data-hover-member="${member.id}">
             <td><strong>${escapeHtml(member.name)}</strong></td>
             <td><span class="pill ${status}">${status === "live" ? "Hụi sống" : "Hụi chết"}</span></td>
             <td>${bid.eligible ? "Có" : "<span class='pill no'>Không được đấu giá</span>"}</td>
@@ -1587,7 +1877,7 @@
       const snapshot = currentSnapshot();
 
       els.memberTable.innerHTML = snapshot.map(member => `
-        <tr class="${member.id === currentRound().winnerId ? "win-row" : ""}">
+        <tr class="${member.id === currentRound().winnerId ? "win-row" : ""}" data-hover-member="${member.id}">
           <td><strong>${escapeHtml(member.name)}</strong></td>
           <td><span class="pill ${member.status}">${member.status === "live" ? "Hụi sống" : "Hụi chết"}</span></td>
           <td>${formatVND(member.totalPaid)}</td>
@@ -1599,40 +1889,172 @@
       `).join("");
     }
 
+    function destroyCharts() {
+      for (const chart of Object.values(state.charts)) {
+        if (chart) chart.destroy();
+      }
+
+      state.charts.payout = null;
+      state.charts.net = null;
+      state.charts.cashflowHistory = null;
+    }
+
+    function chartTooltipLabel(member) {
+      return [
+        `Đã đóng: ${formatVND(member.totalPaid)}`,
+        `Đã nhận: ${formatVND(member.totalReceived)}`,
+        `Net cash: ${formatVND(member.netCashflow)}`,
+        member.wonRound ? `Đã hốt: kỳ ${member.wonRound}` : "Chưa hốt"
+      ];
+    }
+
     function renderCharts() {
+      if (!window.Chart) return;
+
       const payoutRows = state.snapshots[state.snapshots.length - 1]
         .filter(member => member.hasWon)
         .sort((a, b) => a.wonRound - b.wonRound);
-
-      const maxPayout = Math.max(...payoutRows.map(member => member.totalReceived), 1);
-      els.payoutChart.innerHTML = payoutRows.map(member => `
-        <div class="bar-row">
-          <div class="bar-name">${escapeHtml(member.name)}<br><span class="hint">Kỳ ${member.wonRound}</span></div>
-          <div class="bar-track">
-            <div class="bar" style="width:${Math.max(3, member.totalReceived / maxPayout * 100)}%; background:var(--green);"></div>
-          </div>
-          <div class="bar-value">${formatVND(member.totalReceived)}</div>
-        </div>
-      `).join("");
-
       const snapshot = currentSnapshot();
-      const maxAbsNet = Math.max(...snapshot.map(member => Math.abs(member.netCashflow)), 1);
 
-      els.netChart.innerHTML = snapshot.map(member => {
-        const width = Math.max(2, Math.abs(member.netCashflow) / maxAbsNet * 50);
-        const barClass = member.netCashflow < 0 ? "negative" : "positive";
+      if (state.charts.payout) state.charts.payout.destroy();
+      state.charts.payout = new Chart(els.payoutChart, {
+        type: "bar",
+        data: {
+          labels: payoutRows.map(member => `${member.name} - Kỳ ${member.wonRound}`),
+          datasets: [{
+            label: "Thực nhận",
+            data: payoutRows.map(member => member.totalReceived),
+            backgroundColor: "rgba(22, 163, 74, 0.72)",
+            borderColor: "#16a34a",
+            borderWidth: 1,
+            borderRadius: 7
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  const member = payoutRows[context.dataIndex];
+                  return [`Thực nhận: ${formatVND(context.raw)}`, ...chartTooltipLabel(member)];
+                }
+              }
+            }
+          },
+          scales: {
+            y: { ticks: { callback: value => formatVND(value) } }
+          }
+        }
+      });
+
+      if (state.charts.net) state.charts.net.destroy();
+      state.charts.net = new Chart(els.netChart, {
+        type: "bar",
+        data: {
+          labels: snapshot.map(member => member.name),
+          datasets: [{
+            label: "Net cashflow",
+            data: snapshot.map(member => member.netCashflow),
+            backgroundColor: snapshot.map(member => member.netCashflow >= 0 ? "rgba(22, 163, 74, 0.72)" : "rgba(214, 107, 107, 0.76)"),
+            borderColor: snapshot.map(member => member.netCashflow >= 0 ? "#16a34a" : "#d66b6b"),
+            borderWidth: 1,
+            borderRadius: 7
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  const member = snapshot[context.dataIndex];
+                  return chartTooltipLabel(member);
+                }
+              }
+            }
+          },
+          scales: {
+            y: { ticks: { callback: value => formatVND(value) } }
+          }
+        }
+      });
+    }
+
+    function renderHistory() {
+      const finalSnapshot = state.snapshots[state.snapshots.length - 1] || [];
+      const totalCollected = state.rounds.reduce((sum, round) => sum + round.collectedPot, 0);
+      const totalHostFee = state.rounds.reduce((sum, round) => sum + round.hostFee, 0);
+      const totalPayout = state.rounds.reduce((sum, round) => sum + round.payout, 0);
+      const highestVoteRound = state.rounds.reduce((best, round) => !best || round.winningBidPercent > best.winningBidPercent ? round : best, null);
+
+      els.historyCards.innerHTML = `
+        <div class="history-card"><span>Tổng quỹ thực thu</span><strong>${formatVND(totalCollected)}</strong></div>
+        <div class="history-card"><span>Tổng hoa hồng</span><strong>${formatVND(totalHostFee)}</strong></div>
+        <div class="history-card"><span>Tổng tiền đã hốt</span><strong>${formatVND(totalPayout)}</strong></div>
+        <div class="history-card"><span>Vote cao nhất</span><strong>${highestVoteRound ? `${escapeHtml(memberById(highestVoteRound.winnerId).name)} ${formatPercent(highestVoteRound.winningBidPercent)}` : "—"}</strong></div>
+      `;
+
+      els.historyTable.innerHTML = state.rounds.map((round, index) => {
+        const winner = memberById(round.winnerId);
+        const winnerSnapshot = state.snapshots[index].find(member => member.id === round.winnerId);
 
         return `
-          <div class="bar-row">
-            <div class="bar-name">${escapeHtml(member.name)}</div>
-            <div class="bar-track">
-              <div class="bar zero-line"></div>
-              <div class="bar ${barClass}" style="width:${width}%;"></div>
-            </div>
-            <div class="bar-value">${formatVND(member.netCashflow)}</div>
-          </div>
+          <tr data-hover-member="${winner.id}">
+            <td>${round.roundNumber}</td>
+            <td><strong>${escapeHtml(winner.name)}</strong></td>
+            <td>${formatPercent(round.winningBidPercent)}</td>
+            <td>${formatVND(round.bidDiscount)}</td>
+            <td>${formatVND(round.liveContributionAmount)}</td>
+            <td>${formatVND(round.deadContributionAmount)}</td>
+            <td>${formatVND(round.collectedPot)}</td>
+            <td>${formatVND(round.payout)}</td>
+            <td><strong>${formatVND(winnerSnapshot.netCashflow)}</strong></td>
+          </tr>
         `;
       }).join("");
+
+      if (!window.Chart) return;
+
+      if (state.charts.cashflowHistory) state.charts.cashflowHistory.destroy();
+      state.charts.cashflowHistory = new Chart(els.cashflowHistoryChart, {
+        type: "line",
+        data: {
+          labels: state.rounds.map(round => `Kỳ ${round.roundNumber}`),
+          datasets: finalSnapshot.map((member, index) => ({
+            label: member.name,
+            data: state.snapshots.map(snapshot => snapshot.find(item => item.id === member.id).netCashflow),
+            borderColor: chartColor(index),
+            backgroundColor: chartColor(index, 0.14),
+            tension: 0.28,
+            pointRadius: 4,
+            pointHoverRadius: 7
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "nearest", intersect: false },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  const member = finalSnapshot[context.datasetIndex];
+                  const snapshot = state.snapshots[context.dataIndex].find(item => item.id === member.id);
+                  return [`${member.name}: ${formatVND(context.raw)}`, ...chartTooltipLabel(snapshot)];
+                }
+              }
+            }
+          },
+          scales: {
+            y: { ticks: { callback: value => formatVND(value) } }
+          }
+        }
+      });
     }
 
     function renderPhaseEffects() {
@@ -1783,6 +2205,44 @@
       els.nextBtn.disabled = !state.rounds.length || state.currentRoundIndex === state.rounds.length - 1;
     }
 
+    function enableMemberHover() {
+      document.querySelectorAll("[data-hover-member]").forEach(element => {
+        element.onmouseenter = event => showPlayerTooltip(event, Number(element.dataset.hoverMember));
+        element.onmousemove = movePlayerTooltip;
+        element.onmouseleave = hidePlayerTooltip;
+      });
+    }
+
+    function showPlayerTooltip(event, memberId) {
+      const snapshot = currentSnapshot();
+      const member = snapshot.find(item => item.id === memberId) || memberById(memberId);
+      if (!member) return;
+
+      els.playerTooltip.innerHTML = `
+        <strong>${escapeHtml(member.name)} <span class="pill ${member.status}">${member.status === "live" ? "Hụi sống" : "Hụi chết"}</span></strong>
+        <div class="tooltip-row"><span>Tổng đã đóng</span><span>${formatVND(member.totalPaid)}</span></div>
+        <div class="tooltip-row"><span>Tổng đã nhận</span><span>${formatVND(member.totalReceived)}</span></div>
+        <div class="tooltip-row"><span>Net cash</span><span>${formatVND(member.netCashflow)}</span></div>
+        <div class="tooltip-row"><span>Kỳ đã hốt</span><span>${member.wonRound ? `Kỳ ${member.wonRound}` : "Chưa hốt"}</span></div>
+      `;
+      els.playerTooltip.classList.add("show");
+      movePlayerTooltip(event);
+    }
+
+    function movePlayerTooltip(event) {
+      const offset = 14;
+      const tooltipRect = els.playerTooltip.getBoundingClientRect();
+      const x = Math.min(window.innerWidth - tooltipRect.width - 10, event.clientX + offset);
+      const y = Math.min(window.innerHeight - tooltipRect.height - 10, event.clientY + offset);
+
+      els.playerTooltip.style.left = `${Math.max(10, x)}px`;
+      els.playerTooltip.style.top = `${Math.max(10, y)}px`;
+    }
+
+    function hidePlayerTooltip() {
+      els.playerTooltip.classList.remove("show");
+    }
+
     function escapeHtml(value) {
       return String(value)
         .replaceAll("&", "&amp;")
@@ -1798,6 +2258,11 @@
         document.querySelectorAll(".tab-panel").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
         document.getElementById(button.dataset.tab).classList.add("active");
+        setTimeout(() => {
+          Object.values(state.charts).forEach(chart => {
+            if (chart) chart.resize();
+          });
+        }, 0);
       });
     });
 
